@@ -127,8 +127,8 @@ export const SKILLSSHOWCASE_CONFIG: SkillsShowcaseConfig = {
           icon: 'icon-[devicon--nextjs]',
         },
         {
-          name: 'Tailwind CSS',
-          icon: 'icon-[mdi--tailwind]',
+          name: 'Apple',
+          icon: 'icon-[baseline-apple]',
         },
       ],
     },
