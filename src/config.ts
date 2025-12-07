@@ -14,13 +14,13 @@ import type {
 
 //--- Readme Page Config ---
 export const SITE: Site = {
-  title: 'Litos',
+  title: 'Cattk's Blog',
   description:
     'Litos is a modern blogging theme built on Astro.js, designed for developers. It supports multiple post layouts, photo displays, project displays, and more, providing an elegant user experience and powerful customization capabilities.',
   website: 'https://litos.vercel.app/',
   lang: 'en',
   base: '/',
-  author: 'Dnzzk2',
+  author: 'Mxcoc',
   ogImage: '/og-image.webp',
   transition: false,
 }
