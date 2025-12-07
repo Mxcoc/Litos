@@ -23,15 +23,11 @@ export const PhotosList: PhotoData[] = [
       {
         src: "https://img.cattk.com/20251207/AQADZgxrG_4tqFV-.jpg",
         alt: "香港．九龍公園",
-        width: 3024,
-        height: 4032,
         variant: '4x3',
       },
       {
         src: "https://img.cattk.com/20251207/AQADZwxrG_4tqFV-.jpg",
         alt: "香港．九龍公園",
-        width: 3024,
-        height: 4032,
         variant: '4x3',
       },
     ],
