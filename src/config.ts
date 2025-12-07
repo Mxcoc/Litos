@@ -128,7 +128,7 @@ export const SKILLSSHOWCASE_CONFIG: SkillsShowcaseConfig = {
         },
         {
           name: 'Apple',
-          icon: 'icon-[baseline-apple]',
+          icon: 'icon-[baseline--apple]',
         },
       ],
     },
