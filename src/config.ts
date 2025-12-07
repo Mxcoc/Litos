@@ -63,20 +63,22 @@ export const FOOTER_LINKS: Link[] = [
 export const SOCIAL_LINKS: SocialLink[] = [
   {
     name: 'github',
-    url: 'https://github.com/yourname',
+    url: 'https://github.com/Mxcoc',
     icon: 'icon-[ri--github-fill]',
     count: 19,
   },
   {
     name: 'twitter',
-    url: 'https://x.com/yourname',
+    url: 'https://x.com/',
     icon: 'icon-[ri--twitter-x-fill]',
   },
+/**
   {
     name: 'bilibili',
     url: 'https://space.bilibili.com/yourSpaceId',
     icon: 'icon-[ri--bilibili-fill]',
   },
+*/
 ]
 
 /**
@@ -107,10 +109,6 @@ export const SKILLSSHOWCASE_CONFIG: SkillsShowcaseConfig = {
           name: 'HTML',
           icon: 'icon-[mdi--language-html5]',
         },
-        {
-          name: 'TypeScript',
-          icon: 'icon-[mdi--language-typescript]',
-        },
       ],
     },
     {
@@ -125,20 +123,12 @@ export const SKILLSSHOWCASE_CONFIG: SkillsShowcaseConfig = {
           icon: 'icon-[mdi--nodejs]',
         },
         {
-          name: 'React',
-          icon: 'icon-[mdi--react]',
-        },
-        {
           name: 'Next.js',
           icon: 'icon-[devicon--nextjs]',
         },
         {
           name: 'Tailwind CSS',
           icon: 'icon-[mdi--tailwind]',
-        },
-        {
-          name: 'Iconify',
-          icon: 'icon-[line-md--iconify2-static]',
         },
       ],
     },
@@ -148,14 +138,6 @@ export const SKILLSSHOWCASE_CONFIG: SkillsShowcaseConfig = {
         {
           name: 'Ubuntu',
           icon: 'icon-[mdi--ubuntu]',
-        },
-        {
-          name: 'Git',
-          icon: 'icon-[mdi--git]',
-        },
-        {
-          name: 'MongoDB',
-          icon: 'icon-[lineicons--mongodb]',
         },
         {
           name: 'Vercel',
@@ -176,16 +158,16 @@ export const SKILLSSHOWCASE_CONFIG: SkillsShowcaseConfig = {
 
 export const GITHUB_CONFIG: GithubConfig = {
   ENABLED: true,
-  GITHUB_USERNAME: 'Dnzzk2',
+  GITHUB_USERNAME: 'Mxcoc',
   TOOLTIP_ENABLED: true,
 }
 
 //--- Posts Page Config ---
 export const POSTS_CONFIG: PostConfig = {
   title: 'Posts',
-  description: 'Posts by Dnzzk2',
+  description: 'Posts by Mxcoc',
   introduce: 'Here, I will share the usage instructions for this theme to help you quickly use it.',
-  author: 'Dnzzk2',
+  author: 'Mxcoc',
   homePageConfig: {
     size: 5,
     type: 'compact',
@@ -219,8 +201,8 @@ export const COMMENT_CONFIG: CommentConfig = {
     clientID: import.meta.env.PUBLIC_GITHUB_CLIENT_ID,
     clientSecret: import.meta.env.PUBLIC_GITHUB_CLIENT_SECRET,
     repo: 'gitalk-comment',
-    owner: 'Dnzzk2',
-    admin: ['Dnzzk2'],
+    owner: 'Mxcoc',
+    admin: ['Mxcoc'],
     language: 'en-US',
     perPage: 5,
     pagerDirection: 'last',
