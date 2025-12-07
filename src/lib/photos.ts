@@ -11,6 +11,46 @@ import zs2 from '~/assets/photos/zs2.webp'
 
 export const PhotosList: PhotoData[] = [
   {
+    title: "Cute Cats at Friend's House",
+    icon: {
+      type: 'emoji',
+      value: '🐱',
+    },
+    description: 'So cute (*^ω^*)!',
+    date: '2025-06-21',
+    travel: '',
+    photos: [
+      {
+        src: cat1,
+        alt: "Cute cats at friend's house",
+        width: cat1.width,
+        height: cat1.height,
+        variant: '4x3',
+      },
+      {
+        src: cat2,
+        alt: "Cute cats at friend's house",
+        width: cat2.width,
+        height: cat2.height,
+        variant: '4x3',
+      },
+      {
+        src: cat3,
+        alt: "Cute cats at friend's house",
+        width: cat3.width,
+        height: cat3.height,
+        variant: '4x3',
+      },
+      {
+        src: cat4,
+        alt: "Cute cats at friend's house",
+        width: cat4.width,
+        height: cat4.height,
+        variant: '4x3',
+      },
+    ],
+  },
+  {
     title: "香港 • 九龍公園",
     icon: {
       type: 'emoji',
