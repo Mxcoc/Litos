@@ -31,10 +31,6 @@ export const HEADER_LINKS: Link[] = [
     url: '/posts',
   },
   {
-    name: 'Projects',
-    url: '/projects',
-  },
-  {
     name: 'Photos',
     url: '/photos',
   },
@@ -54,20 +50,12 @@ export const FOOTER_LINKS: Link[] = [
     url: '/',
   },
   {
-    name: 'Posts',
-    url: '/posts',
-  },
-  {
     name: 'Projects',
     url: '/projects',
   },
   {
     name: 'Tags',
     url: '/tags',
-  },
-  {
-    name: 'Photos',
-    url: '/photos',
   },
 ]
 
