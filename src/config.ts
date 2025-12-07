@@ -126,10 +126,6 @@ export const SKILLSSHOWCASE_CONFIG: SkillsShowcaseConfig = {
           name: 'Next.js',
           icon: 'icon-[devicon--nextjs]',
         },
-        {
-          name: 'Apple',
-          icon: 'icon-[baseline--apple]',
-        },
       ],
     },
     {
