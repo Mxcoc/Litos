@@ -11,7 +11,7 @@ import zs2 from '~/assets/photos/zs2.webp'
 
 export const PhotosList: PhotoData[] = [
   {
-    title: "香港．九龍公園",
+    title: "香港 • 九龍公園",
     icon: {
       type: 'emoji',
       value: '🚌',
