@@ -11,7 +11,7 @@ import zs2 from '~/assets/photos/zs2.webp'
 
 export const PhotosList: PhotoData[] = [
   {
-    title: "Cute Cats at Friend's House",
+    title: "Cute Cats at Friend's House111",
     icon: {
       type: 'emoji',
       value: '🐱',
@@ -46,32 +46,6 @@ export const PhotosList: PhotoData[] = [
         alt: "Cute cats at friend's house",
         width: cat4.width,
         height: cat4.height,
-        variant: '4x3',
-      },
-    ],
-  },
-  {
-    title: "香港 • 九龍公園",
-    icon: {
-      type: 'emoji',
-      value: '🚌',
-    },
-    description: '(*☻-☻*)',
-    date: '2025-11-01',
-    travel: '',
-    photos: [
-      {
-        src: "https://img.cattk.com/20251207/AQADZgxrG_4tqFV-.jpg",
-        alt: "香港．九龍公園",
-        width: 960,
-        height: 1280,
-        variant: '4x3',
-      },
-      {
-        src: "https://img.cattk.com/20251207/AQADZwxrG_4tqFV-.jpg",
-        alt: "香港．九龍公園",
-        width: 960,
-        height: 1280,
         variant: '4x3',
       },
     ],
