@@ -38,6 +38,14 @@ export const HEADER_LINKS: Link[] = [
     name: 'Photos',
     url: '/photos',
   },
+  {
+    name: 'Memos',
+    url: '/memo',
+  },
+  {
+    name: 'HamRadio',
+    url: '/radio',
+  },
 ]
 
 export const FOOTER_LINKS: Link[] = [
