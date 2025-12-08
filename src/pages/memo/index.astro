@@ -1,51 +1,57 @@
 ---
 import Layout from "../../layouts/Layout.astro";
-
-// 定义 Memo 数据格式
-type Memo = {
-  id: string;
-  content: string;
-  created_at: string;
-  images?: string[];
-};
-
-// 请求 Memo 数据
-const response = await fetch("https://memo.cattk.com");
-const memos: Memo[] = await response.json();
 ---
 
 <Layout title="Memos" description="My memos timeline">
-  <main class="max-w-3xl mx-auto px-4 py-6 space-y-6">
-
-    {memos.map((memo: Memo) => (
-      <article
-        class="p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-900"
-      >
-        <p class="text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
-          {memo.content}
-        </p>
-
-        {memo.images && memo.images.length > 0 && (
-          <div class="grid grid-cols-2 gap-3 mt-3">
-            {memo.images.map((img: string) => (
-              <img
-                src={img}
-                alt="memo image"
-                loading="lazy"
-                class="rounded-lg w-full object-cover"
-              />
-            ))}
-          </div>
-        )}
-
-        <time class="block text-xs text-gray-500 mt-3">
-          {new Date(memo.created_at).toLocaleString()}
-        </time>
-      </article>
-    ))}
-
+  <main id="memos" class="max-w-3xl mx-auto px-4 py-6 space-y-6">
+    <p class="text-gray-500">Loading memos…</p>
   </main>
 </Layout>
+
+<script>
+  async function loadMemos() {
+    const container = document.querySelector("#memos");
+
+    try {
+      const res = await fetch("https://memo.cattk.com/api/memo");
+      const memos = await res.json();
+
+      container.innerHTML = memos
+        .map((memo) => {
+          const imgs = memo.images
+            ? memo.images
+                .map(
+                  (src) =>
+                    `<img src="${src}" class="rounded-lg w-full object-cover" loading="lazy">`
+                )
+                .join("")
+            : "";
+
+          return `
+            <article class="p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-900">
+              <p class="text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
+                ${memo.content}
+              </p>
+              ${
+                imgs
+                  ? `<div class="grid grid-cols-2 gap-3 mt-3">${imgs}</div>`
+                  : ""
+              }
+              <time class="block text-xs text-gray-500 mt-3">
+                ${new Date(memo.created_at).toLocaleString()}
+              </time>
+            </article>
+          `;
+        })
+        .join("");
+    } catch (err) {
+      container.innerHTML =
+        "<p class='text-red-500'>Failed to load memos.</p>";
+    }
+  }
+
+  loadMemos();
+</script>
 
 <style>
   @media (min-width: 768px) {
