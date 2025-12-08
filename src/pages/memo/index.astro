@@ -7,7 +7,8 @@ const description = "在线备忘录页面"
 ---
 
 <Layout {title} {description}>
-  <PageTitle>{title}</PageTitle>
+  <!-- 修正 PageTitle 调用，使用 Props -->
+  <PageTitle title={title} introduce="在线备忘录页面" />
 
   <div id="loader" class="loader">加载中...</div>
 
@@ -29,66 +30,66 @@ const description = "在线备忘录页面"
     <button id="toggle-chrome-btn" class="btn">切换工具栏</button>
   </div>
 
-  <!-- TypeScript 脚本 -->
-  <script type="module" is:ts>
-    const loader = document.querySelector<HTMLDivElement>("#loader");
-    const iframe = document.querySelector<HTMLIFrameElement>("#memo-iframe");
-    const themeSelect = document.querySelector<HTMLSelectElement>("#theme-select");
-    const openBtn = document.querySelector<HTMLButtonElement>("#open-btn");
-    const toggleChromeBtn = document.querySelector<HTMLButtonElement>("#toggle-chrome-btn");
-    const frameChrome = document.querySelector<HTMLElement>(".memos-header");
+  <!-- Astro 5.x 处理 TS 的方式：使用 is:inline + lang="ts" -->
+  <script type="module" is:inline lang="ts">
+    const loader = document.querySelector<HTMLDivElement>("#loader")
+    const iframe = document.querySelector<HTMLIFrameElement>("#memo-iframe")
+    const themeSelect = document.querySelector<HTMLSelectElement>("#theme-select")
+    const openBtn = document.querySelector<HTMLButtonElement>("#open-btn")
+    const toggleChromeBtn = document.querySelector<HTMLButtonElement>("#toggle-chrome-btn")
+    const frameChrome = document.querySelector<HTMLElement>(".memos-header")
 
     if (loader) {
-      loader.style.opacity = "1";
-      loader.style.pointerEvents = "all";
+      loader.style.opacity = "1"
+      loader.style.pointerEvents = "all"
     }
 
     if (iframe) {
       iframe.addEventListener("load", () => {
         if (loader) {
           setTimeout(() => {
-            loader.style.display = "none";
-            loader.style.opacity = "0";
-            loader.style.pointerEvents = "none";
-          }, 300);
+            loader.style.display = "none"
+            loader.style.opacity = "0"
+            loader.style.pointerEvents = "none"
+          }, 300)
         }
 
-        const headerHeight = frameChrome?.offsetHeight || 72;
-        iframe.style.height = (window.innerHeight - headerHeight - 48) + "px";
-      });
+        const headerHeight = frameChrome?.offsetHeight || 72
+        iframe.style.height = (window.innerHeight - headerHeight - 48) + "px"
+      })
     }
 
     if (openBtn && iframe) {
       openBtn.addEventListener("click", () => {
-        window.open(iframe.src, "_blank", "noreferrer");
-      });
+        window.open(iframe.src, "_blank", "noreferrer")
+      })
     }
 
     if (toggleChromeBtn && frameChrome) {
-      let chromeHidden = false;
+      let chromeHidden = false
       toggleChromeBtn.addEventListener("click", () => {
-        chromeHidden = !chromeHidden;
-        frameChrome.style.display = chromeHidden ? "none" : "flex";
+        chromeHidden = !chromeHidden
+        frameChrome.style.display = chromeHidden ? "none" : "flex"
         if (iframe) {
-          const headerHeight = frameChrome?.offsetHeight || 0;
-          iframe.style.height = (window.innerHeight - headerHeight - 48) + "px";
+          const headerHeight = frameChrome?.offsetHeight || 0
+          iframe.style.height = (window.innerHeight - headerHeight - 48) + "px"
         }
-      });
+      })
     }
 
     if (themeSelect && iframe) {
-      themeSelect.addEventListener("change", (e) => {
-        const target = e.target as HTMLSelectElement;
-        const val = target.value;
-        iframe.contentWindow?.postMessage(JSON.stringify({ theme: val }), "*");
-      });
+      themeSelect.addEventListener("change", (e: Event) => {
+        const target = e.target as HTMLSelectElement
+        const val = target.value
+        iframe.contentWindow?.postMessage(JSON.stringify({ theme: val }), "*")
+      })
     }
 
     window.addEventListener("resize", () => {
       if (iframe) {
-        const headerHeight = frameChrome?.offsetHeight || 72;
-        iframe.style.height = (window.innerHeight - headerHeight - 48) + "px";
+        const headerHeight = frameChrome?.offsetHeight || 72
+        iframe.style.height = (window.innerHeight - headerHeight - 48) + "px"
       }
-    });
+    })
   </script>
 </Layout>
