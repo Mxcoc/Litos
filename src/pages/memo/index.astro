@@ -2,47 +2,343 @@
 import Layout from "../../layouts/Layout.astro";
 ---
 
-<Layout title="Memos" description="My memos timeline">
-  <main class="max-w-4xl mx-auto px-4 py-6">
+<Layout title="Memos" description="Embedded memos from memo.cattk.com">
+  <main class="page-container">
+    <header class="memos-header">
+      <div class="header-left">
+        <h1>Memos</h1>
+        <p class="subtitle">Embedded from memo.cattk.com — integrated view</p>
+      </div>
 
-    <h1 class="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">
-      Memos
-    </h1>
+      <nav class="header-actions" role="navigation" aria-label="Memos actions">
+        <button id="open-original" class="btn">Open original</button>
+        <button id="toggle-chrome" class="btn">Toggle chrome</button>
+        <select id="theme-select" class="btn">
+          <option value="auto">Theme: auto</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </nav>
+    </header>
 
-    <!-- Iframe 容器 -->
-    <div class="iframe-wrapper">
-      <iframe
-        src="https://memo.cattk.com"
-        loading="lazy"
-        frameborder="0"
-        class="memo-iframe"
-      ></iframe>
-    </div>
+    <section class="iframe-area" aria-live="polite">
+      <!-- Loading overlay / skeleton -->
+      <div id="loader" class="loader">
+        <div class="spinner" role="status" aria-hidden="true"></div>
+        <div class="loader-text">正在加载 Memos…</div>
 
+        <div class="skeleton-grid" aria-hidden="true">
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card tall"></div>
+          <div class="skeleton-card"></div>
+        </div>
+      </div>
+
+      <!-- Visual wrapper that makes embed look 'native' -->
+      <div class="embed-wrapper">
+        <iframe
+          id="memo-iframe"
+          src="https://memo.cattk.com"
+          loading="lazy"
+          frameborder="0"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+          class="memo-iframe"
+          title="Memos from memo.cattk.com"
+        ></iframe>
+
+        <!-- optional overlay for native-style chrome (will hide if iframe signals it removed its header) -->
+        <div id="frame-chrome" class="frame-chrome">
+          <!-- visual top bar that mimics blog chrome -->
+          <div class="chrome-bar">
+            <div class="chrome-title">Memos · memo.cattk.com</div>
+            <div class="chrome-actions">
+              <button id="frame-refresh" class="tiny">↻</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 </Layout>
 
+<script>
+  // Client-side only JS — runs in browser
+  (function () {
+    const iframe = document.getElementById("memo-iframe");
+    const loader = document.getElementById("loader");
+    const frameChrome = document.getElementById("frame-chrome");
+    const openBtn = document.getElementById("open-original");
+    const toggleChromeBtn = document.getElementById("toggle-chrome");
+    const themeSelect = document.getElementById("theme-select");
+    const refreshBtn = document.getElementById("frame-refresh");
+
+    // Timeouts and flags
+    let iframeReady = false;
+    let chromeHidden = false;
+
+    // Show loader until iframe is ready or 10s timeout
+    const hideLoader = () => {
+      loader.style.opacity = "0";
+      loader.style.pointerEvents = "none";
+      setTimeout(() => loader.style.display = "none", 300);
+    };
+
+    // Attempt to detect ready via postMessage or 'load' fallback
+    function setupIframeListeners() {
+      // If iframe sends a ready message (must be implemented on memo side), use it
+      window.addEventListener("message", (ev) => {
+        // Basic origin check (optional): if you want, check ev.origin === "https://memo.cattk.com"
+        try {
+          const data = typeof ev.data === "string" ? JSON.parse(ev.data) : ev.data;
+          if (!data || !data.type) return;
+
+          if (data.type === "memo-ready") {
+            iframeReady = true;
+            hideLoader();
+            if (data.hideChrome) {
+              // If the embedded page removed its own header, hide our overlay chrome
+              frameChrome.style.display = "none";
+            }
+          }
+
+          if (data.type === "memo-height" && data.height) {
+            // Optional: adjust iframe height if embedded page sends height (works only if same-origin or allowed)
+            iframe.style.height = data.height + "px";
+          }
+        } catch (e) {
+          // ignore parse errors
+        }
+      });
+
+      // Fallback: use iframe load event
+      iframe.addEventListener("load", () => {
+        // If ready message never came, we still hide loader after small delay
+        setTimeout(() => {
+          if (!iframeReady) {
+            hideLoader();
+          }
+        }, 600);
+      });
+
+      // Safety: force hide loader after 12s
+      setTimeout(() => {
+        if (!iframeReady) hideLoader();
+      }, 12000);
+    }
+
+    // Control functions that may ask iframe to modify itself (postMessage)
+    function postToIframe(payload) {
+      // Try to post JSON; if cross-origin allowed, the page may accept
+      try {
+        iframe.contentWindow.postMessage(JSON.stringify(payload), "*");
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    // Toggle hide/show of our visual overlay chrome
+    toggleChromeBtn.addEventListener("click", () => {
+      chromeHidden = !chromeHidden;
+      frameChrome.style.display = chromeHidden ? "none" : "block";
+
+      // ask iframe to hide its own header if it supports messages
+      postToIframe({ type: "hide-chrome", hide: chromeHidden });
+    });
+
+    // Open original in new tab
+    openBtn.addEventListener("click", () => {
+      window.open(iframe.src, "_blank", "noreferrer");
+    });
+
+    // Theme picker — try to tell iframe to adopt theme (requires iframe support)
+    themeSelect.addEventListener("change", (e) => {
+      const val = e.target.value; // 'auto'|'light'|'dark'
+      postToIframe({ type: "set-theme", theme: val });
+      // Also set a CSS class on wrapper so our outer chrome matches selection
+      document.documentElement.dataset.embedTheme = val;
+    });
+
+    // Refresh iframe
+    refreshBtn?.addEventListener("click", () => {
+      iframe.contentWindow.location.reload();
+      // show loader quickly
+      loader.style.display = "flex";
+      setTimeout(() => loader.style.opacity = "1", 10);
+    });
+
+    // On small screens, make iframe height reasonable
+    function sizeIframeForViewport() {
+      const vh = Math.max(window.innerHeight || 600, 600);
+      // If we want the iframe to occupy most of viewport but keep header visible:
+      const headerHeight = document.querySelector(".memos-header")?.offsetHeight || 72;
+      iframe.style.height = (vh - headerHeight - 48) + "px";
+    }
+
+    window.addEventListener("resize", sizeIframeForViewport);
+    window.addEventListener("orientationchange", sizeIframeForViewport);
+
+    // Init
+    setupIframeListeners();
+    sizeIframeForViewport();
+  })();
+</script>
+
 <style>
-  .iframe-wrapper {
-    width: 100%;
-    height: 85vh;
-    border-radius: 10px;
+  /* Basic page layout — responsive */
+  .page-container {
+    padding: 1.25rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    box-sizing: border-box;
+  }
+
+  .memos-header {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .memos-header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+  }
+  .memos-header .subtitle {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.9rem;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .btn {
+    background: var(--btn-bg, #111827);
+    color: var(--btn-color, #fff);
+    border: none;
+    padding: 0.45rem 0.7rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+
+  .btn:hover { opacity: 0.92; }
+
+  /* iframe area and loader */
+  .iframe-area {
+    position: relative;
+  }
+
+  .embed-wrapper {
+    position: relative;
+    border-radius: 12px;
     overflow: hidden;
-    border: 1px solid var(--color-border);
+    border: 1px solid rgba(15, 23, 42, 0.06);
+    background: #fff;
+    min-height: 420px;
   }
 
   .memo-iframe {
     width: 100%;
-    height: 100%;
+    height: 70vh; /* JS will adjust for header on init/resize */
+    display: block;
+    border: 0;
+    background: transparent;
   }
 
-  :root {
-    --color-border: rgba(0,0,0,0.1);
+  /* Simple overlay chrome at top of iframe to visually integrate */
+  .frame-chrome {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    pointer-events: none; /* buttons inside we will allow individually */
   }
 
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --color-border: rgba(255,255,255,0.15);
-    }
+  .chrome-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6));
+    backdrop-filter: blur(6px);
+    pointer-events: auto;
+  }
+
+  .chrome-title { font-size: 0.95rem; color:#374151; }
+  .chrome-actions .tiny {
+    border: none;
+    background: transparent;
+    padding: 0.25rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.95rem;
+  }
+
+  /* Loader + skeleton */
+  .loader {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+    justify-content: center;
+    z-index: 30;
+    background: linear-gradient(180deg, rgba(250,250,250,0.6), rgba(245,245,245,0.6));
+    transition: opacity 0.28s ease;
+  }
+
+  .spinner {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 4px solid rgba(0,0,0,0.08);
+    border-top-color: rgba(59,130,246,1);
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loader-text { color: #6b7280; font-size: 0.95rem; }
+
+  .skeleton-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 12px;
+    width: calc(100% - 40px);
+    max-width: 900px;
+  }
+
+  .skeleton-card {
+    height: 80px;
+    border-radius: 10px;
+    background: linear-gradient(90deg, rgba(0,0,0,0.06), rgba(0,0,0,0.04));
+  }
+  .skeleton-card.tall { height: 130px; grid-column: span 2; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .skeleton-grid { grid-template-columns: 1fr; }
+    .chrome-bar { padding: 0.45rem; }
+    .memos-header h1 { font-size: 1.15rem; }
+    .memo-iframe { height: 60vh; }
+  }
+
+  /* Theme hook for outer chrome — if you use data-embed-theme on html */
+  :root[data-embed-theme="dark"] .embed-wrapper {
+    background: #0b1220;
+    border-color: rgba(255,255,255,0.06);
+  }
+  :root[data-embed-theme="dark"] .chrome-bar {
+    background: linear-gradient(180deg, rgba(2,6,23,0.85), rgba(2,6,23,0.6));
   }
 </style>
