@@ -70,20 +70,20 @@ function getImagesFromHtml(html: string): string[] {
     <img id="zoom-img" class="zoom-img" />
   </div>
 
-  <script>
-    function zoomImage(url) {
-      const overlay = document.getElementById("zoom-overlay")
-      const img = document.getElementById("zoom-img")
+<script>
+  function zoomImage(url: string) {
+    const overlay = document.getElementById("zoom-overlay") as HTMLElement | null
+    const img = document.getElementById("zoom-img") as HTMLImageElement | null
 
-      if (img) img.src = url
-      if (overlay) overlay.style.display = "flex"
-    }
+    if (img) img.src = url
+    if (overlay) overlay.style.display = "flex"
+  }
 
-    function closeZoom() {
-      const overlay = document.getElementById("zoom-overlay")
-      if (overlay) overlay.style.display = "none"
-    }
-  </script>
+  function closeZoom() {
+    const overlay = document.getElementById("zoom-overlay") as HTMLElement | null
+    if (overlay) overlay.style.display = "none"
+  }
+</script>
 
   <style>
     .memo-container {
