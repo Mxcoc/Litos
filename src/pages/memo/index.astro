@@ -1,273 +1,179 @@
 ---
-import Layout from '~/layouts/Layout.astro'
+import Layout from "~/layouts/Layout.astro";
 
-const rssUrl = "https://memo.cattk.com/rss.json"
+// 远程 BroadcastChannel API
+const MEMO_API = "https://memo.cattk.com/api/feed"; // 你部署的 BroadcastChannel 实例
 
-type MemoItem = {
-  content_html: string
-  date_published: string
-  id?: string
-  title?: string
-}
-
-let memos: MemoItem[] = []
+// 拉取 Memos 数据
+let memos = [];
 try {
-  const res = await fetch(rssUrl)
-  const data = await res.json()
-  memos = (data?.items || []) as MemoItem[]
+  const res = await fetch(MEMO_API);
+  const data = await res.json();
+  memos = data.items || [];
 } catch (e) {
-  console.error("无法获取 Memos 数据:", e)
+  console.error("无法加载 Memos 数据：", e);
 }
-
-/**
- * enhanceScript 说明（客户端执行）
- * - timeAgo: 相对时间
- * - fixImageSrc: 处理懒加载属性、相对路径、协议相对 URL、srcset
- * - add click-to-viewer: 点击图片放大
- */
-const enhanceScript = `
-(function () {
-  function timeAgo(dateString) {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diff = (now - date) / 1000
-    if (diff < 60) return '刚刚'
-    if (diff < 3600) return Math.floor(diff / 60) + ' 分钟前'
-    if (diff < 86400) return Math.floor(diff / 3600) + ' 小时前'
-    if (diff < 172800) return '昨天'
-    if (diff < 604800) return Math.floor(diff / 86400) + ' 天前'
-    return date.toLocaleString()
-  }
-
-  function normalizeUrl(url) {
-    if (!url) return ''
-    url = url.trim()
-    // protocol-relative (//example.com/...)
-    if (url.startsWith('//')) return 'https:' + url
-    // relative to memos host
-    if (url.startsWith('/')) return 'https://memo.cattk.com' + url
-    // otherwise assume absolute (http/https)
-    return url
-  }
-
-  function fixImageSrc(img) {
-    // common lazy attr candidates (priority order)
-    const candidates = [
-      'src', 'data-src', 'data-original', 'data-lazy', 'data-srcset',
-      'data-lazy-src', 'data-src-small', 'data-src-large', 'data-original-src'
-    ]
-
-    // if img has no src or empty, try to fill
-    let assigned = false
-
-    // handle srcset-like candidates separately
-    const srcsetCandidates = ['data-srcset', 'data-srcset-lazy', 'data-lazy-srcset']
-
-    for (const key of candidates) {
-      const val = img.getAttribute(key)
-      if (val && key !== 'data-srcset' && key.indexOf('srcset') === -1 && (!img.src || img.src.trim() === '')) {
-        const normalized = normalizeUrl(val)
-        if (normalized) {
-          img.src = normalized
-          assigned = true
-          break
-        }
-      }
-    }
-
-    // srcset handling
-    for (const s of srcsetCandidates) {
-      const val = img.getAttribute(s)
-      if (val) {
-        // try to normalize each url inside srcset
-        const parts = val.split(',').map(p => p.trim()).filter(Boolean)
-        const normalizedParts = parts.map(part => {
-          const [u, descriptor] = part.split(/\s+/)
-          return normalizeUrl(u) + (descriptor ? ' ' + descriptor : '')
-        })
-        img.srcset = normalizedParts.join(', ')
-      }
-    }
-
-    // If src is still empty but there is a srcset, set src to first srcset url
-    if ((!img.src || img.src.trim() === '') && img.srcset) {
-      const first = img.srcset.split(',')[0].trim().split(/\s+/)[0]
-      if (first) {
-        img.src = normalizeUrl(first)
-      }
-    }
-
-    // if protocol mismatch (http) and page is https, try to upgrade to https if possible
-    try {
-      if (img.src && img.src.startsWith('http:')) {
-        img.src = img.src.replace(/^http:/, 'https:')
-      }
-    } catch (err) {
-      // ignore
-    }
-
-    // styling
-    img.style.maxWidth = '100%'
-    img.style.height = 'auto'
-    img.style.borderRadius = '6px'
-    img.style.marginTop = '10px'
-    img.style.cursor = 'pointer'
-    img.loading = 'lazy'
-  }
-
-  function bindViewer(img) {
-    img.addEventListener('click', function () {
-      const viewer = document.createElement('div')
-      viewer.className = 'img-viewer'
-      const imgEl = document.createElement('img')
-      imgEl.src = img.src
-      viewer.appendChild(imgEl)
-      viewer.addEventListener('click', () => viewer.remove())
-      document.body.appendChild(viewer)
-    })
-  }
-
-  function processAll() {
-    document.querySelectorAll('[data-time]').forEach(el => {
-      const dt = el.getAttribute('data-time')
-      if (dt) el.textContent = timeAgo(dt)
-    })
-
-    // Fix images inside content
-    document.querySelectorAll('.memo-content img').forEach(img => {
-      try {
-        fixImageSrc(img)
-        bindViewer(img)
-      } catch (e) {
-        console.warn('fixImageSrc error', e)
-      }
-    })
-
-    // Also handle <picture> sources: normalize <source srcset>
-    document.querySelectorAll('.memo-content picture source').forEach(src => {
-      const ss = src.getAttribute('srcset')
-      if (ss) {
-        const normalized = ss.split(',').map(p => {
-          const [u, d] = p.trim().split(/\s+/)
-          return (u.startsWith('/') ? 'https://memo.cattk.com' + u : (u.startsWith('//') ? 'https:' + u : u)) + (d ? ' ' + d : '')
-        }).join(', ')
-        if (normalized) src.setAttribute('srcset', normalized)
-      }
-    })
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', processAll)
-  } else {
-    processAll()
-  }
-})()
-`
-
 ---
 
-<Layout title="Memos" description="Memos Timeline">
-  <main class="memos-container">
-    <h1>Memos</h1>
+<Layout title="Memos" description="记录我的瞬间想法">
 
-    {memos.length === 0 && <p>无法加载内容。</p>}
+  <main class="memo-page">
+    <h1 class="memo-title">Memos</h1>
+
+    {memos.length === 0 && (
+      <p class="loading">加载中… 或 API 暂不可访问</p>
+    )}
 
     <div class="memo-list">
-      {memos.map((item: MemoItem) => (
-        <article class="memo-card" key={item.id || item.date_published}>
-          <p class="memo-content" set:html={item.content_html}></p>
+      {memos.map((item) => {
+        const content = item.content_text || item.title || "";
+        const date = new Date(item.date_published).toLocaleString();
 
-          <div class="memo-meta">
-            <span class="memo-time" data-time={item.date_published}>
-              {new Date(item.date_published).toLocaleString()}
-            </span>
-          </div>
-        </article>
-      ))}
+        // 识别图片（只要文本里出现 http 开头的 jpg/png/webp）
+        const imageRegex = /(https?:\/\/[^\s]+?\.(jpg|jpeg|png|webp|gif))/gi;
+        const images = content.match(imageRegex) || [];
+
+        // 去掉图片 URL，只留下文本
+        const pureText = content.replace(imageRegex, "").trim();
+
+        return (
+          <article class="memo-card" id={`memo-${item.id || date}`}>
+            <div class="memo-header">
+              <time>{date}</time>
+            </div>
+
+            {pureText && <p class="memo-text">{pureText}</p>}
+
+            {images.length > 0 && (
+              <div class="memo-images">
+                {images.map((url) => (
+                  <img
+                    src={url}
+                    loading="lazy"
+                    class="memo-img"
+                    onclick={`zoomImage('${url}')`}
+                  />
+                ))}
+              </div>
+            )}
+          </article>
+        );
+      })}
     </div>
   </main>
 
-  <script is:inline>{enhanceScript}</script>
+  <!-- 图片放大预览 -->
+  <div id="zoom-overlay" onclick="closeZoom()">
+    <img id="zoom-img" />
+  </div>
+
+  <script>
+    function zoomImage(url) {
+      const overlay = document.getElementById("zoom-overlay");
+      const img = document.getElementById("zoom-img");
+      img.src = url;
+      overlay.style.display = "flex";
+    }
+    function closeZoom() {
+      document.getElementById("zoom-overlay").style.display = "none";
+    }
+  </script>
+
+  <style>
+    .memo-page {
+      max-width: 800px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    .memo-title {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    .loading {
+      text-align: center;
+      opacity: 0.6;
+      margin-top: 20px;
+    }
+
+    .memo-list {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .memo-card {
+      background: var(--card-bg, #fff);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 4px 12px rgb(0 0 0 / 6%);
+      transition: transform 0.2s ease;
+    }
+    .memo-card:hover {
+      transform: translateY(-3px);
+    }
+
+    .memo-header time {
+      font-size: 0.85rem;
+      opacity: 0.6;
+    }
+
+    .memo-text {
+      margin-top: 10px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .memo-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .memo-img {
+      width: 100%;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .memo-img:hover {
+      opacity: 0.9;
+    }
+
+    /* 图片预览 Overlay */
+    #zoom-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 999;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #zoom-img {
+      max-width: 90%;
+      max-height: 90%;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.4);
+    }
+
+    /* 移动端适配 */
+    @media (max-width: 640px) {
+      .memo-card {
+        padding: 12px;
+      }
+      .memo-images {
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      }
+    }
+  </style>
+
 </Layout>
-
-<style>
-  .memos-container {
-    max-width: 780px;
-    margin: 0 auto;
-    padding: 16px;
-  }
-
-  h1 {
-    margin: 20px 0 26px;
-    font-size: 2rem;
-    font-weight: 600;
-  }
-
-  .memo-list {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-
-  .memo-card {
-    background: var(--card-bg, #ffffff);
-    border-radius: 12px;
-    padding: 16px 20px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-    border: 1px solid var(--divider-color, #e5e5e5);
-    transition: transform .15s ease, box-shadow .15s ease;
-  }
-  .memo-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
-  }
-
-  .memo-content {
-    line-height: 1.7;
-    font-size: 1rem;
-    white-space: pre-wrap;
-    word-break: break-word;
-    color: var(--text-primary, #333);
-    margin-bottom: 12px;
-  }
-
-  .memo-meta {
-    font-size: 0.85rem;
-    color: var(--text-secondary, #888);
-  }
-
-  .img-viewer {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0,0,0,0.75);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-    padding: 20px;
-  }
-  .img-viewer img {
-    max-width: 90vw;
-    max-height: 90vh;
-    border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-  }
-
-  /* responsive tweaks */
-  @media (max-width: 640px) {
-    .memos-container { padding: 12px; }
-    .memo-card { padding: 12px; }
-    h1 { font-size: 1.6rem; }
-  }
-
-  :root.dark .memo-card {
-    background: #1e1e1e;
-    border-color: #2e2e2e;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  }
-  :root.dark .memo-content { color: #ddd; }
-  :root.dark .memo-meta { color: #aaa; }
-</style>
