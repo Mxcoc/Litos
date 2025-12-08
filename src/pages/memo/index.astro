@@ -1,85 +1,60 @@
 ---
-import Layout from "../../layouts/Layout.astro";
+import Layout from "@/layouts/Layout.astro";
 
-const MEMO_API = "https://memo.cattk.com/api/broadcast";
-const res = await fetch(MEMO_API);
-const memos = (await res.json()) || [];
+// 定义 Memo 数据格式
+type Memo = {
+  id: string;
+  content: string;
+  created_at: string;
+  images?: string[];
+};
+
+// 直接请求 JSON（BroadcastChannel 输出 JSON）
+const response = await fetch("https://memo.cattk.com");
+const memos: Memo[] = await response.json();
 ---
 
-<Layout title="Memos">
-  <div class="mx-auto max-w-3xl px-4 py-10">
-    <h1 class="text-3xl font-bold mb-6">Memos</h1>
+<Layout title="Memos" description="My memos timeline">
+  <main class="max-w-3xl mx-auto px-4 py-6 space-y-6">
 
-    <div class="grid gap-4">
-      {memos.map((memo) => (
-        <div
-          class="p-4 rounded-lg border border-gray-200 bg-white shadow-sm dark:bg-gray-900 dark:border-gray-700"
-        >
-          <div class="text-sm text-gray-500 mb-2">
-            {new Date(memo.created_at).toLocaleString()}
+    {memos.map((memo: Memo) => (
+      <article
+        class="p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-900"
+      >
+        <p class="text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
+          {memo.content}
+        </p>
+
+        {memo.images && memo.images.length > 0 && (
+          <div class="grid grid-cols-2 gap-3 mt-3">
+            {memo.images.map((img: string) => (
+              <img
+                src={img}
+                alt="memo image"
+                loading="lazy"
+                class="rounded-lg w-full object-cover"
+              />
+            ))}
           </div>
+        )}
 
-          <div class="prose prose-sm dark:prose-invert mb-3">
-            {memo.content}
-          </div>
+        <time class="block text-xs text-gray-500 mt-3">
+          {new Date(memo.created_at).toLocaleString()}
+        </time>
+      </article>
+    ))}
 
-          {memo.images && memo.images.length > 0 && (
-            <div class="flex flex-wrap gap-2">
-              {memo.images.map((img) => (
-                <img
-                  src={img}
-                  class="w-32 h-32 object-cover rounded cursor-pointer memo-img"
-                  data-full={img}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  </div>
-
-  <!-- Lightbox -->
-  <div
-    id="lightbox"
-    class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50"
-  >
-    <img id="lightbox-img" src="" class="max-w-[90%] max-h-[90%] rounded shadow-lg" />
-  </div>
-
-  <style>
-    #lightbox.show {
-      display: flex;
-    }
-  </style>
-
-  <script is:inline>
-    // -------------------------------
-    // 图片预览 Lightbox
-    // -------------------------------
-    document.addEventListener("DOMContentLoaded", () => {
-      const lightbox = document.getElementById("lightbox");
-      const lightboxImg = document.getElementById("lightbox-img");
-
-      if (!lightbox || !lightboxImg) return;
-
-      const imgs = document.querySelectorAll<HTMLImageElement>(".memo-img");
-
-      imgs.forEach((img) => {
-        img.addEventListener("click", () => {
-          const url = img.dataset.full;
-          if (url) {
-            lightboxImg.src = url;
-            lightbox.classList.add("show");
-          }
-        });
-      });
-
-      // 点击关闭
-      lightbox.addEventListener("click", () => {
-        lightboxImg.src = "";
-        lightbox.classList.remove("show");
-      });
-    });
-  </script>
+  </main>
 </Layout>
+
+<style>
+  @media (min-width: 768px) {
+    article {
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    article:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+  }
+</style>
