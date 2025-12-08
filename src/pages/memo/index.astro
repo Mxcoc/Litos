@@ -1,179 +1,156 @@
 ---
-import Layout from "~/layouts/Layout.astro";
+import Layout from "~/layouts/Layout.astro"
 
-// 远程 BroadcastChannel API
-const MEMO_API = "https://memo.cattk.com/api/feed"; // 你部署的 BroadcastChannel 实例
+const rssUrl = "https://memo.cattk.com/rss.json"
 
-// 拉取 Memos 数据
-let memos = [];
+interface MemoItem {
+  id?: string
+  content_html: string
+  date_published: string
+}
+
+let memos: MemoItem[] = []
+
 try {
-  const res = await fetch(MEMO_API);
-  const data = await res.json();
-  memos = data.items || [];
+  const res = await fetch(rssUrl)
+  const data = await res.json()
+  memos = data?.items || []
 } catch (e) {
-  console.error("无法加载 Memos 数据：", e);
+  console.error("加载 Memos 数据失败:", e)
+}
+
+/** 提取 content_html 中的所有图片 URL */
+function getImagesFromHtml(html: string): string[] {
+  const regex = /<img[^>]+src="([^">]+)"/g
+  const images: string[] = []
+  let match
+
+  while ((match = regex.exec(html)) !== null) {
+    images.push(match[1])
+  }
+
+  return images
 }
 ---
 
-<Layout title="Memos" description="记录我的瞬间想法">
+<Layout title="Memos" description="我的日常想法与记录">
+  <main class="memo-container">
+    <h1 class="page-title">Memos</h1>
 
-  <main class="memo-page">
-    <h1 class="memo-title">Memos</h1>
+    {memos.map((item: MemoItem) => {
+      const images = getImagesFromHtml(item.content_html)
 
-    {memos.length === 0 && (
-      <p class="loading">加载中… 或 API 暂不可访问</p>
-    )}
+      return (
+        <article class="memo-card" id={`memo-${item.id || item.date_published}`}>
+          <div class="memo-content" set:html={item.content_html}></div>
 
-    <div class="memo-list">
-      {memos.map((item) => {
-        const content = item.content_text || item.title || "";
-        const date = new Date(item.date_published).toLocaleString();
-
-        // 识别图片（只要文本里出现 http 开头的 jpg/png/webp）
-        const imageRegex = /(https?:\/\/[^\s]+?\.(jpg|jpeg|png|webp|gif))/gi;
-        const images = content.match(imageRegex) || [];
-
-        // 去掉图片 URL，只留下文本
-        const pureText = content.replace(imageRegex, "").trim();
-
-        return (
-          <article class="memo-card" id={`memo-${item.id || date}`}>
-            <div class="memo-header">
-              <time>{date}</time>
+          {images.length > 0 && (
+            <div class="memo-images">
+              {images.map((url: string) => (
+                <img
+                  src={url}
+                  loading="lazy"
+                  class="memo-img"
+                  onclick={`zoomImage('${url}')`}
+                />
+              ))}
             </div>
+          )}
 
-            {pureText && <p class="memo-text">{pureText}</p>}
-
-            {images.length > 0 && (
-              <div class="memo-images">
-                {images.map((url) => (
-                  <img
-                    src={url}
-                    loading="lazy"
-                    class="memo-img"
-                    onclick={`zoomImage('${url}')`}
-                  />
-                ))}
-              </div>
-            )}
-          </article>
-        );
-      })}
-    </div>
+          <time class="memo-time">
+            {new Date(item.date_published).toLocaleString()}
+          </time>
+        </article>
+      )
+    })}
   </main>
 
-  <!-- 图片放大预览 -->
-  <div id="zoom-overlay" onclick="closeZoom()">
-    <img id="zoom-img" />
+  <!-- 图片预览 Lightbox -->
+  <div id="zoom-overlay" class="zoom-overlay" onclick="closeZoom()">
+    <img id="zoom-img" class="zoom-img" />
   </div>
 
   <script>
     function zoomImage(url) {
-      const overlay = document.getElementById("zoom-overlay");
-      const img = document.getElementById("zoom-img");
-      img.src = url;
-      overlay.style.display = "flex";
+      const overlay = document.getElementById("zoom-overlay")
+      const img = document.getElementById("zoom-img")
+
+      if (img) img.src = url
+      if (overlay) overlay.style.display = "flex"
     }
+
     function closeZoom() {
-      document.getElementById("zoom-overlay").style.display = "none";
+      const overlay = document.getElementById("zoom-overlay")
+      if (overlay) overlay.style.display = "none"
     }
   </script>
 
   <style>
-    .memo-page {
-      max-width: 800px;
-      margin: auto;
+    .memo-container {
+      max-width: 780px;
+      margin: 0 auto;
       padding: 20px;
     }
 
-    .memo-title {
+    .page-title {
       font-size: 2rem;
-      font-weight: bold;
-      margin-bottom: 1.5rem;
-      text-align: center;
-    }
-
-    .loading {
-      text-align: center;
-      opacity: 0.6;
-      margin-top: 20px;
-    }
-
-    .memo-list {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
+      margin-bottom: 20px;
     }
 
     .memo-card {
       background: var(--card-bg, #fff);
+      border: 1px solid var(--divider-color, #e5e5e5);
       border-radius: 12px;
-      padding: 16px;
-      box-shadow: 0 4px 12px rgb(0 0 0 / 6%);
-      transition: transform 0.2s ease;
-    }
-    .memo-card:hover {
-      transform: translateY(-3px);
+      padding: 18px;
+      margin-bottom: 20px;
+      box-shadow: var(--card-shadow, 0 1px 4px rgba(0, 0, 0, 0.04));
     }
 
-    .memo-header time {
-      font-size: 0.85rem;
-      opacity: 0.6;
-    }
-
-    .memo-text {
-      margin-top: 10px;
-      line-height: 1.6;
-      white-space: pre-wrap;
+    .memo-content {
+      line-height: 1.8;
+      margin-bottom: 12px;
     }
 
     .memo-images {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
       gap: 10px;
-      margin-top: 12px;
+      margin-bottom: 10px;
     }
 
     .memo-img {
       width: 100%;
       border-radius: 8px;
-      cursor: pointer;
+      object-fit: cover;
+      cursor: zoom-in;
       transition: opacity 0.2s;
     }
+
     .memo-img:hover {
-      opacity: 0.9;
+      opacity: 0.85;
     }
 
-    /* 图片预览 Overlay */
-    #zoom-overlay {
-      display: none;
+    .memo-time {
+      color: var(--text-secondary, #666);
+      font-size: 0.85rem;
+    }
+
+    /* Lightbox */
+    .zoom-overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.8);
-      z-index: 999;
+      z-index: 9999;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      display: none;
       justify-content: center;
       align-items: center;
     }
 
-    #zoom-img {
+    .zoom-img {
       max-width: 90%;
       max-height: 90%;
-      border-radius: 12px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.4);
-    }
-
-    /* 移动端适配 */
-    @media (max-width: 640px) {
-      .memo-card {
-        padding: 12px;
-      }
-      .memo-images {
-        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-      }
+      border-radius: 10px;
+      object-fit: contain;
     }
   </style>
-
 </Layout>
