@@ -6,6 +6,8 @@ const rssUrl = "https://memo.cattk.com/rss.json"
 type MemoItem = {
   content_html: string
   date_published: string
+  id?: string
+  title?: string
 }
 
 let memos: MemoItem[] = []
@@ -17,44 +19,151 @@ try {
   console.error("无法获取 Memos 数据:", e)
 }
 
-// 相对时间 + 图片处理 + 图片点击放大
+/**
+ * enhanceScript 说明（客户端执行）
+ * - timeAgo: 相对时间
+ * - fixImageSrc: 处理懒加载属性、相对路径、协议相对 URL、srcset
+ * - add click-to-viewer: 点击图片放大
+ */
 const enhanceScript = `
-function timeAgo(dateString) {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diff = (now - date) / 1000
+(function () {
+  function timeAgo(dateString) {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diff = (now - date) / 1000
+    if (diff < 60) return '刚刚'
+    if (diff < 3600) return Math.floor(diff / 60) + ' 分钟前'
+    if (diff < 86400) return Math.floor(diff / 3600) + ' 小时前'
+    if (diff < 172800) return '昨天'
+    if (diff < 604800) return Math.floor(diff / 86400) + ' 天前'
+    return date.toLocaleString()
+  }
 
-  if (diff < 60) return '刚刚'
-  if (diff < 3600) return Math.floor(diff / 60) + ' 分钟前'
-  if (diff < 86400) return Math.floor(diff / 3600) + ' 小时前'
-  if (diff < 172800) return '昨天'
-  if (diff < 604800) return Math.floor(diff / 86400) + ' 天前'
-  return date.toLocaleString()
-}
+  function normalizeUrl(url) {
+    if (!url) return ''
+    url = url.trim()
+    // protocol-relative (//example.com/...)
+    if (url.startsWith('//')) return 'https:' + url
+    // relative to memos host
+    if (url.startsWith('/')) return 'https://memo.cattk.com' + url
+    // otherwise assume absolute (http/https)
+    return url
+  }
 
-document.querySelectorAll('[data-time]').forEach(el => {
-  el.textContent = timeAgo(el.getAttribute('data-time'))
-})
+  function fixImageSrc(img) {
+    // common lazy attr candidates (priority order)
+    const candidates = [
+      'src', 'data-src', 'data-original', 'data-lazy', 'data-srcset',
+      'data-lazy-src', 'data-src-small', 'data-src-large', 'data-original-src'
+    ]
 
-// 图片适配卡片宽度
-document.querySelectorAll('.memo-content img').forEach(img => {
-  img.style.maxWidth = '100%'
-  img.style.borderRadius = '6px'
-  img.style.marginTop = '10px'
-  img.style.cursor = 'pointer'
-})
+    // if img has no src or empty, try to fill
+    let assigned = false
 
-// 点击图片放大
-document.querySelectorAll('.memo-content img').forEach(img => {
-  img.addEventListener('click', () => {
-    const viewer = document.createElement('div')
-    viewer.className = 'img-viewer'
-    viewer.innerHTML = '<img src="' + img.src + '" />'
-    viewer.addEventListener('click', () => viewer.remove())
-    document.body.appendChild(viewer)
-  })
-})
+    // handle srcset-like candidates separately
+    const srcsetCandidates = ['data-srcset', 'data-srcset-lazy', 'data-lazy-srcset']
+
+    for (const key of candidates) {
+      const val = img.getAttribute(key)
+      if (val && key !== 'data-srcset' && key.indexOf('srcset') === -1 && (!img.src || img.src.trim() === '')) {
+        const normalized = normalizeUrl(val)
+        if (normalized) {
+          img.src = normalized
+          assigned = true
+          break
+        }
+      }
+    }
+
+    // srcset handling
+    for (const s of srcsetCandidates) {
+      const val = img.getAttribute(s)
+      if (val) {
+        // try to normalize each url inside srcset
+        const parts = val.split(',').map(p => p.trim()).filter(Boolean)
+        const normalizedParts = parts.map(part => {
+          const [u, descriptor] = part.split(/\s+/)
+          return normalizeUrl(u) + (descriptor ? ' ' + descriptor : '')
+        })
+        img.srcset = normalizedParts.join(', ')
+      }
+    }
+
+    // If src is still empty but there is a srcset, set src to first srcset url
+    if ((!img.src || img.src.trim() === '') && img.srcset) {
+      const first = img.srcset.split(',')[0].trim().split(/\s+/)[0]
+      if (first) {
+        img.src = normalizeUrl(first)
+      }
+    }
+
+    // if protocol mismatch (http) and page is https, try to upgrade to https if possible
+    try {
+      if (img.src && img.src.startsWith('http:')) {
+        img.src = img.src.replace(/^http:/, 'https:')
+      }
+    } catch (err) {
+      // ignore
+    }
+
+    // styling
+    img.style.maxWidth = '100%'
+    img.style.height = 'auto'
+    img.style.borderRadius = '6px'
+    img.style.marginTop = '10px'
+    img.style.cursor = 'pointer'
+    img.loading = 'lazy'
+  }
+
+  function bindViewer(img) {
+    img.addEventListener('click', function () {
+      const viewer = document.createElement('div')
+      viewer.className = 'img-viewer'
+      const imgEl = document.createElement('img')
+      imgEl.src = img.src
+      viewer.appendChild(imgEl)
+      viewer.addEventListener('click', () => viewer.remove())
+      document.body.appendChild(viewer)
+    })
+  }
+
+  function processAll() {
+    document.querySelectorAll('[data-time]').forEach(el => {
+      const dt = el.getAttribute('data-time')
+      if (dt) el.textContent = timeAgo(dt)
+    })
+
+    // Fix images inside content
+    document.querySelectorAll('.memo-content img').forEach(img => {
+      try {
+        fixImageSrc(img)
+        bindViewer(img)
+      } catch (e) {
+        console.warn('fixImageSrc error', e)
+      }
+    })
+
+    // Also handle <picture> sources: normalize <source srcset>
+    document.querySelectorAll('.memo-content picture source').forEach(src => {
+      const ss = src.getAttribute('srcset')
+      if (ss) {
+        const normalized = ss.split(',').map(p => {
+          const [u, d] = p.trim().split(/\s+/)
+          return (u.startsWith('/') ? 'https://memo.cattk.com' + u : (u.startsWith('//') ? 'https:' + u : u)) + (d ? ' ' + d : '')
+        }).join(', ')
+        if (normalized) src.setAttribute('srcset', normalized)
+      }
+    })
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', processAll)
+  } else {
+    processAll()
+  }
+})()
 `
+
 ---
 
 <Layout title="Memos" description="Memos Timeline">
@@ -65,7 +174,7 @@ document.querySelectorAll('.memo-content img').forEach(img => {
 
     <div class="memo-list">
       {memos.map((item: MemoItem) => (
-        <article class="memo-card">
+        <article class="memo-card" key={item.id || item.date_published}>
           <p class="memo-content" set:html={item.content_html}></p>
 
           <div class="memo-meta">
@@ -82,7 +191,6 @@ document.querySelectorAll('.memo-content img').forEach(img => {
 </Layout>
 
 <style>
-  /* 页面布局 */
   .memos-container {
     max-width: 780px;
     margin: 0 auto;
@@ -95,14 +203,12 @@ document.querySelectorAll('.memo-content img').forEach(img => {
     font-weight: 600;
   }
 
-  /* 卡片容器（自适应） */
   .memo-list {
     display: flex;
     flex-direction: column;
     gap: 20px;
   }
 
-  /* 卡片 UI */
   .memo-card {
     background: var(--card-bg, #ffffff);
     border-radius: 12px;
@@ -116,7 +222,6 @@ document.querySelectorAll('.memo-content img').forEach(img => {
     box-shadow: 0 6px 16px rgba(0,0,0,0.08);
   }
 
-  /* 内容排版 */
   .memo-content {
     line-height: 1.7;
     font-size: 1rem;
@@ -126,13 +231,11 @@ document.querySelectorAll('.memo-content img').forEach(img => {
     margin-bottom: 12px;
   }
 
-  /* 时间 */
   .memo-meta {
     font-size: 0.85rem;
     color: var(--text-secondary, #888);
   }
 
-  /* 点击放大图片背景 */
   .img-viewer {
     position: fixed;
     top: 0;
@@ -144,23 +247,27 @@ document.querySelectorAll('.memo-content img').forEach(img => {
     align-items: center;
     justify-content: center;
     z-index: 9999;
+    padding: 20px;
   }
   .img-viewer img {
     max-width: 90vw;
     max-height: 90vh;
     border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
   }
 
-  /* 暗黑模式 */
+  /* responsive tweaks */
+  @media (max-width: 640px) {
+    .memos-container { padding: 12px; }
+    .memo-card { padding: 12px; }
+    h1 { font-size: 1.6rem; }
+  }
+
   :root.dark .memo-card {
     background: #1e1e1e;
     border-color: #2e2e2e;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   }
-  :root.dark .memo-content {
-    color: #ddd;
-  }
-  :root.dark .memo-meta {
-    color: #aaa;
-  }
+  :root.dark .memo-content { color: #ddd; }
+  :root.dark .memo-meta { color: #aaa; }
 </style>
