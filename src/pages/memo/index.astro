@@ -3,12 +3,9 @@ import Layout from '~/layouts/Layout.astro'
 
 const rssUrl = "https://memo.cattk.com/rss.json"
 
-// 定义 BroadcastChannel RSS Item 类型
 type MemoItem = {
   content_html: string
   date_published: string
-  id?: string
-  title?: string
 }
 
 let memos: MemoItem[] = []
@@ -20,7 +17,8 @@ try {
   console.error("无法获取 Memos 数据:", e)
 }
 
-const relativeTimeScript = `
+// 相对时间 + 图片处理 + 图片点击放大
+const enhanceScript = `
 function timeAgo(dateString) {
   const date = new Date(dateString)
   const now = new Date()
@@ -31,12 +29,30 @@ function timeAgo(dateString) {
   if (diff < 86400) return Math.floor(diff / 3600) + ' 小时前'
   if (diff < 172800) return '昨天'
   if (diff < 604800) return Math.floor(diff / 86400) + ' 天前'
-
   return date.toLocaleString()
 }
 
 document.querySelectorAll('[data-time]').forEach(el => {
   el.textContent = timeAgo(el.getAttribute('data-time'))
+})
+
+// 图片适配卡片宽度
+document.querySelectorAll('.memo-content img').forEach(img => {
+  img.style.maxWidth = '100%'
+  img.style.borderRadius = '6px'
+  img.style.marginTop = '10px'
+  img.style.cursor = 'pointer'
+})
+
+// 点击图片放大
+document.querySelectorAll('.memo-content img').forEach(img => {
+  img.addEventListener('click', () => {
+    const viewer = document.createElement('div')
+    viewer.className = 'img-viewer'
+    viewer.innerHTML = '<img src="' + img.src + '" />'
+    viewer.addEventListener('click', () => viewer.remove())
+    document.body.appendChild(viewer)
+  })
 })
 `
 ---
@@ -47,55 +63,99 @@ document.querySelectorAll('[data-time]').forEach(el => {
 
     {memos.length === 0 && <p>无法加载内容。</p>}
 
-    {memos.map((item: MemoItem) => (
-      <article class="memo-item">
-        <p class="memo-content" set:html={item.content_html}></p>
+    <div class="memo-list">
+      {memos.map((item: MemoItem) => (
+        <article class="memo-card">
+          <p class="memo-content" set:html={item.content_html}></p>
 
-        <div class="memo-meta">
-          <span class="memo-time" data-time={item.date_published}>
-            {new Date(item.date_published).toLocaleString()}
-          </span>
-        </div>
-      </article>
-    ))}
+          <div class="memo-meta">
+            <span class="memo-time" data-time={item.date_published}>
+              {new Date(item.date_published).toLocaleString()}
+            </span>
+          </div>
+        </article>
+      ))}
+    </div>
   </main>
 
-  <script is:inline>{relativeTimeScript}</script>
+  <script is:inline>{enhanceScript}</script>
 </Layout>
 
 <style>
+  /* 页面布局 */
   .memos-container {
-    max-width: 740px;
+    max-width: 780px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 16px;
   }
 
   h1 {
-    margin-bottom: 24px;
+    margin: 20px 0 26px;
     font-size: 2rem;
     font-weight: 600;
   }
 
-  .memo-item {
-    padding: 18px 0;
-    border-bottom: 1px solid var(--divider-color, #e5e5e5);
+  /* 卡片容器（自适应） */
+  .memo-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
   }
 
+  /* 卡片 UI */
+  .memo-card {
+    background: var(--card-bg, #ffffff);
+    border-radius: 12px;
+    padding: 16px 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    border: 1px solid var(--divider-color, #e5e5e5);
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .memo-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+  }
+
+  /* 内容排版 */
   .memo-content {
-    line-height: 1.75;
+    line-height: 1.7;
     font-size: 1rem;
     white-space: pre-wrap;
+    word-break: break-word;
     color: var(--text-primary, #333);
-    margin-bottom: 10px;
+    margin-bottom: 12px;
   }
 
+  /* 时间 */
   .memo-meta {
     font-size: 0.85rem;
     color: var(--text-secondary, #888);
   }
 
-  :root.dark .memo-item {
-    border-color: #3a3a3a;
+  /* 点击放大图片背景 */
+  .img-viewer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+  .img-viewer img {
+    max-width: 90vw;
+    max-height: 90vh;
+    border-radius: 8px;
+  }
+
+  /* 暗黑模式 */
+  :root.dark .memo-card {
+    background: #1e1e1e;
+    border-color: #2e2e2e;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   }
   :root.dark .memo-content {
     color: #ddd;
