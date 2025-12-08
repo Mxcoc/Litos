@@ -1,114 +1,94 @@
 ---
-import Layout from "../../layouts/Layout.astro";
+import Layout from '~/layouts/Layout.astro'
+import PageTitle from '~/components/base/PageTitle.astro'
+
+const title = "备忘录"
+const description = "在线备忘录页面"
 ---
 
-<Layout title="Memos" description="My memos timeline">
-  <header class="memos-header flex items-center justify-between p-4 bg-white dark:bg-gray-900 shadow-md sticky top-0 z-50">
-    <h1 class="text-xl font-bold">Memos</h1>
-    <div class="flex items-center gap-2">
-      <select id="theme-select" class="border rounded px-2 py-1">
-        <option value="auto">Auto</option>
-        <option value="light">Light</option>
-        <option value="dark">Dark</option>
-      </select>
-      <button id="open-btn" class="px-2 py-1 border rounded">Open in new tab</button>
-      <button id="toggle-chrome-btn" class="px-2 py-1 border rounded">Toggle Chrome</button>
-    </div>
-  </header>
+<Layout {title} {description}>
+  <PageTitle>{title}</PageTitle>
 
-  <div id="loader" class="fixed inset-0 bg-white dark:bg-gray-900 flex items-center justify-center z-50 opacity-0 pointer-events-none transition-opacity">
-    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white"></div>
+  <div id="loader" class="loader">加载中...</div>
+
+  <iframe
+    id="memo-iframe"
+    src="/memos"
+    class="w-full border-none"
+    title="备忘录"
+  ></iframe>
+
+  <div class="memos-header flex items-center gap-2 mt-4">
+    <select id="theme-select" class="border rounded p-1">
+      <option value="light">浅色</option>
+      <option value="dark">深色</option>
+      <option value="auto">自动</option>
+    </select>
+
+    <button id="open-btn" class="btn">在新窗口打开</button>
+    <button id="toggle-chrome-btn" class="btn">切换工具栏</button>
   </div>
 
-  <main class="max-w-5xl mx-auto p-4">
-    <iframe
-      id="memo-iframe"
-      src="https://memo.cattk.com"
-      style="border: 0; width: 100%; height: 80vh;"
-      loading="lazy"
-    ></iframe>
-  </main>
-</Layout>
+  <!-- TypeScript 脚本 -->
+  <script type="module" is:ts>
+    const loader = document.querySelector<HTMLDivElement>("#loader");
+    const iframe = document.querySelector<HTMLIFrameElement>("#memo-iframe");
+    const themeSelect = document.querySelector<HTMLSelectElement>("#theme-select");
+    const openBtn = document.querySelector<HTMLButtonElement>("#open-btn");
+    const toggleChromeBtn = document.querySelector<HTMLButtonElement>("#toggle-chrome-btn");
+    const frameChrome = document.querySelector<HTMLElement>(".memos-header");
 
-<style>
-  @media (min-width: 768px) {
-    #memo-iframe {
-      transition: height 0.2s;
+    if (loader) {
+      loader.style.opacity = "1";
+      loader.style.pointerEvents = "all";
     }
-  }
-</style>
 
-<script type="module">
-  // 获取 DOM 元素
-  const loader = document.querySelector<HTMLDivElement>("#loader");
-  const iframe = document.querySelector<HTMLIFrameElement>("#memo-iframe");
-  const themeSelect = document.querySelector<HTMLSelectElement>("#theme-select");
-  const openBtn = document.querySelector<HTMLButtonElement>("#open-btn");
-  const toggleChromeBtn = document.querySelector<HTMLButtonElement>("#toggle-chrome-btn");
-  const frameChrome = document.querySelector<HTMLElement>(".memos-header");
-
-  // 显示加载动画
-  if (loader) {
-    loader.style.opacity = "1";
-    loader.style.pointerEvents = "all";
-  }
-
-  // iframe 加载完成
-  if (iframe) {
-    iframe.addEventListener("load", () => {
-      if (loader) {
-        setTimeout(() => {
-          loader.style.display = "none";
-          loader.style.opacity = "0";
-          loader.style.pointerEvents = "none";
-        }, 300);
-      }
-
-      // 自适应高度
-      const header = document.querySelector<HTMLElement>(".memos-header");
-      const vh = window.innerHeight;
-      const headerHeight = header?.offsetHeight || 72;
-      iframe.style.height = (vh - headerHeight - 48) + "px";
-    });
-  }
-
-  // 打开新窗口
-  if (openBtn && iframe) {
-    openBtn.addEventListener("click", () => {
-      window.open(iframe.src, "_blank", "noreferrer");
-    });
-  }
-
-  // 切换顶部导航显示
-  if (toggleChromeBtn && frameChrome) {
-    let chromeHidden = false;
-    toggleChromeBtn.addEventListener("click", () => {
-      chromeHidden = !chromeHidden;
-      frameChrome.style.display = chromeHidden ? "none" : "flex";
-      // 调整 iframe 高度
-      if (iframe) {
-        const vh = window.innerHeight;
-        const headerHeight = frameChrome?.offsetHeight || 0;
-        iframe.style.height = (vh - headerHeight - 48) + "px";
-      }
-    });
-  }
-
-  // 切换主题
-  if (themeSelect && iframe) {
-    themeSelect.addEventListener("change", (e) => {
-      const target = e.target as HTMLSelectElement;
-      const val = target.value; // 'auto'|'light'|'dark'
-      iframe.contentWindow?.postMessage(JSON.stringify({ theme: val }), "*");
-    });
-  }
-
-  // 响应窗口大小变化，动态调整 iframe 高度
-  window.addEventListener("resize", () => {
     if (iframe) {
-      const headerHeight = frameChrome?.offsetHeight || 72;
-      const vh = window.innerHeight;
-      iframe.style.height = (vh - headerHeight - 48) + "px";
+      iframe.addEventListener("load", () => {
+        if (loader) {
+          setTimeout(() => {
+            loader.style.display = "none";
+            loader.style.opacity = "0";
+            loader.style.pointerEvents = "none";
+          }, 300);
+        }
+
+        const headerHeight = frameChrome?.offsetHeight || 72;
+        iframe.style.height = (window.innerHeight - headerHeight - 48) + "px";
+      });
     }
-  });
-</script>
+
+    if (openBtn && iframe) {
+      openBtn.addEventListener("click", () => {
+        window.open(iframe.src, "_blank", "noreferrer");
+      });
+    }
+
+    if (toggleChromeBtn && frameChrome) {
+      let chromeHidden = false;
+      toggleChromeBtn.addEventListener("click", () => {
+        chromeHidden = !chromeHidden;
+        frameChrome.style.display = chromeHidden ? "none" : "flex";
+        if (iframe) {
+          const headerHeight = frameChrome?.offsetHeight || 0;
+          iframe.style.height = (window.innerHeight - headerHeight - 48) + "px";
+        }
+      });
+    }
+
+    if (themeSelect && iframe) {
+      themeSelect.addEventListener("change", (e) => {
+        const target = e.target as HTMLSelectElement;
+        const val = target.value;
+        iframe.contentWindow?.postMessage(JSON.stringify({ theme: val }), "*");
+      });
+    }
+
+    window.addEventListener("resize", () => {
+      if (iframe) {
+        const headerHeight = frameChrome?.offsetHeight || 72;
+        iframe.style.height = (window.innerHeight - headerHeight - 48) + "px";
+      }
+    });
+  </script>
+</Layout>
