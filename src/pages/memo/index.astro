@@ -3,93 +3,15 @@ import Layout from '~/layouts/Layout.astro'
 import PageTitle from '~/components/base/PageTitle.astro'
 
 const title = "备忘录"
-const description = "在线备忘录页面"
+const description = "博客风格备忘录"
 ---
 
 <Layout {title} {description}>
-  <!-- 修正 PageTitle 调用，使用 Props -->
-  <PageTitle title={title} introduce="在线备忘录页面" />
-
-  <div id="loader" class="loader">加载中...</div>
+  <PageTitle title={title} introduce="博客风格备忘录" />
 
   <iframe
-    id="memo-iframe"
-    src="/memos"
-    class="w-full border-none"
+    src="https://memo.cattk.com"
+    class="w-full min-h-[80vh] border-none rounded shadow"
     title="备忘录"
   ></iframe>
-
-  <div class="memos-header flex items-center gap-2 mt-4">
-    <select id="theme-select" class="border rounded p-1">
-      <option value="light">浅色</option>
-      <option value="dark">深色</option>
-      <option value="auto">自动</option>
-    </select>
-
-    <button id="open-btn" class="btn">在新窗口打开</button>
-    <button id="toggle-chrome-btn" class="btn">切换工具栏</button>
-  </div>
-
-  <!-- Astro 5.x 处理 TS 的方式：使用 is:inline + lang="ts" -->
-  <script type="module" is:inline lang="ts">
-    const loader = document.querySelector<HTMLDivElement>("#loader")
-    const iframe = document.querySelector<HTMLIFrameElement>("#memo-iframe")
-    const themeSelect = document.querySelector<HTMLSelectElement>("#theme-select")
-    const openBtn = document.querySelector<HTMLButtonElement>("#open-btn")
-    const toggleChromeBtn = document.querySelector<HTMLButtonElement>("#toggle-chrome-btn")
-    const frameChrome = document.querySelector<HTMLElement>(".memos-header")
-
-    if (loader) {
-      loader.style.opacity = "1"
-      loader.style.pointerEvents = "all"
-    }
-
-    if (iframe) {
-      iframe.addEventListener("load", () => {
-        if (loader) {
-          setTimeout(() => {
-            loader.style.display = "none"
-            loader.style.opacity = "0"
-            loader.style.pointerEvents = "none"
-          }, 300)
-        }
-
-        const headerHeight = frameChrome?.offsetHeight || 72
-        iframe.style.height = (window.innerHeight - headerHeight - 48) + "px"
-      })
-    }
-
-    if (openBtn && iframe) {
-      openBtn.addEventListener("click", () => {
-        window.open(iframe.src, "_blank", "noreferrer")
-      })
-    }
-
-    if (toggleChromeBtn && frameChrome) {
-      let chromeHidden = false
-      toggleChromeBtn.addEventListener("click", () => {
-        chromeHidden = !chromeHidden
-        frameChrome.style.display = chromeHidden ? "none" : "flex"
-        if (iframe) {
-          const headerHeight = frameChrome?.offsetHeight || 0
-          iframe.style.height = (window.innerHeight - headerHeight - 48) + "px"
-        }
-      })
-    }
-
-    if (themeSelect && iframe) {
-      themeSelect.addEventListener("change", (e: Event) => {
-        const target = e.target as HTMLSelectElement
-        const val = target.value
-        iframe.contentWindow?.postMessage(JSON.stringify({ theme: val }), "*")
-      })
-    }
-
-    window.addEventListener("resize", () => {
-      if (iframe) {
-        const headerHeight = frameChrome?.offsetHeight || 72
-        iframe.style.height = (window.innerHeight - headerHeight - 48) + "px"
-      }
-    })
-  </script>
 </Layout>
