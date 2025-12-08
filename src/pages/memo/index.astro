@@ -1,344 +1,85 @@
 ---
-import Layout from "~/layouts/Layout.astro";
+import Layout from "../../layouts/Layout.astro";
 
-const RSS_URL = "https://memo.cattk.com/rss.json";
-
-interface MemoItem {
-  id?: string;
-  content_html: string;
-  date_published: string;
-}
-
-let memos: MemoItem[] = [];
-try {
-  const res = await fetch(RSS_URL);
-  const data = await res.json();
-  memos = Array.isArray(data?.items) ? data.items : [];
-} catch (e) {
-  console.error("加载 Memos 失败:", e);
-}
+const MEMO_API = "https://memo.cattk.com/api/broadcast";
+const res = await fetch(MEMO_API);
+const memos = (await res.json()) || [];
 ---
 
-<Layout title="Memos" description="Memos Timeline (with images)">
-  <main class="memo-container">
-    <h1 class="page-title">Memos</h1>
+<Layout title="Memos">
+  <div class="mx-auto max-w-3xl px-4 py-10">
+    <h1 class="text-3xl font-bold mb-6">Memos</h1>
 
-    {memos.length === 0 ? (
-      <p class="empty">暂无 Memos 或正在加载…</p>
-    ) : (
-      <div class="memo-list">
-        {memos.map((item: MemoItem) => (
-          // 不要在这里单独抽取并渲染 images —— content_html 原样注入，
-          // 客户端脚本会统一处理所有 <img>、<picture>、srcset、data-src 等。
-          <article class="memo-card" id={`memo-${item.id || item.date_published}`}>
-            <div class="memo-body" set:html={item.content_html}></div>
-            <footer class="memo-footer">
-              <time>{new Date(item.date_published).toLocaleString()}</time>
-            </footer>
-          </article>
-        ))}
-      </div>
-    )}
-  </main>
+    <div class="grid gap-4">
+      {memos.map((memo) => (
+        <div
+          class="p-4 rounded-lg border border-gray-200 bg-white shadow-sm dark:bg-gray-900 dark:border-gray-700"
+        >
+          <div class="text-sm text-gray-500 mb-2">
+            {new Date(memo.created_at).toLocaleString()}
+          </div>
 
-  <!-- Lightbox overlay -->
-  <div id="memo-lightbox" class="memo-lightbox" onclick="closeLightbox()">
-    <img id="memo-lightbox-img" alt="preview"/>
+          <div class="prose prose-sm dark:prose-invert mb-3">
+            {memo.content}
+          </div>
+
+          {memo.images && memo.images.length > 0 && (
+            <div class="flex flex-wrap gap-2">
+              {memo.images.map((img) => (
+                <img
+                  src={img}
+                  class="w-32 h-32 object-cover rounded cursor-pointer memo-img"
+                  data-full={img}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
   </div>
 
-  <!-- 客户端增强脚本：统一处理图片 src/srcset/protocol-relative/relative/data-src；添加 lightbox 事件；调节样式 -->
-  <script>
-    (function () {
-      // helper: normalize url from data-src / relative / protocol-relative
-      function normalizeUrl(url) {
-        if (!url) return "";
-        url = String(url).trim();
-        if (url.startsWith("//")) return "https:" + url;
-        if (url.startsWith("/")) return "https://memo.cattk.com" + url;
-        // upgrade http -> https when possible
-        if (url.startsWith("http:")) return url.replace(/^http:/, "https:");
-        return url;
-      }
-
-      // handle srcset normalization (make each URL normalized)
-      function normalizeSrcset(raw) {
-        if (!raw) return "";
-        return raw
-          .split(",")
-          .map((part) => {
-            const p = part.trim();
-            if (!p) return "";
-            const [u, descriptor] = p.split(/\s+/);
-            return normalizeUrl(u) + (descriptor ? " " + descriptor : "");
-          })
-          .filter(Boolean)
-          .join(", ");
-      }
-
-      // fix a single <img> element: set src/srcset from lazy attrs, normalize, styling, and bind click
-      function fixImage(img) {
-        try {
-          // prioritize common lazy attributes
-          const lazyAttrs = [
-            "data-src",
-            "data-original",
-            "data-lazy",
-            "data-lazy-src",
-            "data-src-small",
-            "data-src-large",
-            "data-original-src",
-            "data-echo",
-          ];
-
-          // if src is empty or placeholder, try to fill
-          const curSrc = img.getAttribute("src") || "";
-          if (!curSrc || curSrc === "" || curSrc === "about:blank") {
-            for (const a of lazyAttrs) {
-              const v = img.getAttribute(a);
-              if (v) {
-                img.src = normalizeUrl(v);
-                break;
-              }
-            }
-          } else {
-            img.src = normalizeUrl(curSrc);
-          }
-
-          // srcset handling
-          const srcsetCandidates = ["srcset", "data-srcset", "data-lazy-srcset"];
-          for (const s of srcsetCandidates) {
-            const ss = img.getAttribute(s);
-            if (ss) {
-              img.setAttribute("srcset", normalizeSrcset(ss));
-              break;
-            }
-          }
-          // if still no src but has srcset, set src to first entry
-          if ((!img.getAttribute("src") || img.getAttribute("src") === "") && img.getAttribute("srcset")) {
-            const first = img.getAttribute("srcset").split(",")[0].trim().split(/\s+/)[0];
-            if (first) img.src = normalizeUrl(first);
-          }
-
-          // ensure https for protocol-relative cases left
-          if (img.src && img.src.startsWith("http:")) {
-            img.src = img.src.replace(/^http:/, "https:");
-          }
-
-          // styling to avoid layout shifts and overflow
-          img.style.maxWidth = "100%";
-          img.style.height = "auto";
-          img.style.display = "block";
-          img.style.borderRadius = "8px";
-          img.style.marginTop = "10px";
-          img.style.cursor = "zoom-in";
-          img.loading = "lazy";
-
-          // click -> open lightbox
-          img.addEventListener("click", function (ev) {
-            ev.stopPropagation();
-            openLightbox(img.src || img.getAttribute("src"));
-          });
-        } catch (e) {
-          // swallow
-          console.warn("fixImage error", e);
-        }
-      }
-
-      // normalize <picture> sources too
-      function fixPicture(picture) {
-        try {
-          const sources = picture.querySelectorAll("source");
-          sources.forEach((s) => {
-            const ss = s.getAttribute("srcset");
-            if (ss) s.setAttribute("srcset", normalizeSrcset(ss));
-            const src = s.getAttribute("src");
-            if (src) s.setAttribute("src", normalizeUrl(src));
-          });
-          const img = picture.querySelector("img");
-          if (img) fixImage(img);
-        } catch (e) {
-          console.warn("fixPicture", e);
-        }
-      }
-
-      // open/close lightbox
-      function openLightbox(url) {
-        if (!url) return;
-        const overlay = document.getElementById("memo-lightbox");
-        const img = document.getElementById("memo-lightbox-img");
-        if (img) img.src = url;
-        if (overlay) overlay.style.display = "flex";
-      }
-      function closeLightbox() {
-        const overlay = document.getElementById("memo-lightbox");
-        const img = document.getElementById("memo-lightbox-img");
-        if (overlay) overlay.style.display = "none";
-        if (img) img.src = "";
-      }
-
-      // expose functions to global (used by inline handlers if any)
-      window.openLightbox = openLightbox;
-      window.closeLightbox = closeLightbox;
-
-      // process all memo-body elements: fix images/pictures and normalize anchors that wrap images
-      function processAll() {
-        // process <picture>
-        document.querySelectorAll(".memo-body picture").forEach((p) => fixPicture(p));
-
-        // process <img>
-        document.querySelectorAll(".memo-body img").forEach((imgEl) => fixImage(imgEl));
-
-        // some sites put image URLs as plain links; convert visible links ending with image extensions into previews
-        document.querySelectorAll(".memo-body a").forEach((a) => {
-          try {
-            const href = a.getAttribute("href") || "";
-            if (/\.(jpe?g|png|webp|gif|svg)(\?.*)?$/i.test(href)) {
-              // if the anchor contains only the URL text (no inner img), replace with an image node
-              const hasImg = a.querySelector("img");
-              if (!hasImg) {
-                const img = document.createElement("img");
-                img.src = normalizeUrl(href);
-                img.alt = a.textContent || "";
-                img.loading = "lazy";
-                a.parentElement?.replaceChild(img, a);
-                fixImage(img);
-              } else {
-                // if anchor wraps an img, ensure normalized src
-                const wrappedImg = a.querySelector("img");
-                if (wrappedImg) fixImage(wrappedImg);
-              }
-            }
-          } catch (e) {
-            // ignore
-          }
-        });
-
-        // optional: ensure long unbroken text doesn't overflow cards
-        document.querySelectorAll(".memo-body").forEach((el) => {
-          (el as HTMLElement).style.wordBreak = "break-word";
-        });
-      }
-
-      if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", processAll);
-      } else {
-        processAll();
-      }
-
-      // close lightbox on ESC
-      document.addEventListener("keydown", function (e) {
-        if (e.key === "Escape") closeLightbox();
-      });
-
-      // click overlay to close
-      const overlayEl = document.getElementById("memo-lightbox");
-      if (overlayEl) overlayEl.addEventListener("click", closeLightbox);
-    })();
-  </script>
+  <!-- Lightbox -->
+  <div
+    id="lightbox"
+    class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50"
+  >
+    <img id="lightbox-img" src="" class="max-w-[90%] max-h-[90%] rounded shadow-lg" />
+  </div>
 
   <style>
-    /* container */
-    .memo-container {
-      max-width: 880px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-
-    .page-title {
-      font-size: 2rem;
-      font-weight: 700;
-      margin-bottom: 20px;
-      text-align: left;
-    }
-
-    .empty {
-      text-align: center;
-      color: var(--text-secondary, #666);
-    }
-
-    /* list & card */
-    .memo-list {
+    #lightbox.show {
       display: flex;
-      flex-direction: column;
-      gap: 18px;
     }
-
-    .memo-card {
-      background: var(--card-bg, #fff);
-      border-radius: 12px;
-      padding: 18px;
-      border: 1px solid var(--divider-color, #e9e9e9);
-      box-shadow: 0 6px 18px rgba(12, 24, 40, 0.04);
-      overflow: hidden;
-      transition: transform .12s ease, box-shadow .12s ease;
-    }
-    .memo-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 10px 26px rgba(12,24,40,0.08);
-    }
-
-    .memo-body {
-      font-size: 1rem;
-      line-height: 1.75;
-      color: var(--text-primary, #222);
-    }
-
-    /* images inside the content get block-level treatment and margin */
-    .memo-body img {
-      display: block;
-      max-width: 100%;
-      height: auto;
-      border-radius: 8px;
-      margin: 10px 0;
-    }
-
-    /* pictures with multiple images will simply flow vertically; if you prefer grid, we can enhance later */
-    .memo-images-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    .memo-footer {
-      margin-top: 12px;
-      color: var(--text-secondary, #777);
-      font-size: 0.9rem;
-    }
-
-    /* Lightbox */
-    .memo-lightbox {
-      position: fixed;
-      inset: 0;
-      z-index: 9999;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      background: rgba(0,0,0,0.85);
-      padding: 20px;
-    }
-    .memo-lightbox img {
-      max-width: 95%;
-      max-height: 95%;
-      border-radius: 10px;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.6);
-      object-fit: contain;
-    }
-
-    /* responsive */
-    @media (max-width: 720px) {
-      .memo-container { padding: 14px; }
-      .memo-card { padding: 14px; }
-      .page-title { font-size: 1.5rem; }
-    }
-
-    /* dark mode support */
-    :root.dark .memo-card {
-      background: #111;
-      border-color: #222;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.35);
-    }
-    :root.dark .memo-body { color: #ddd; }
-    :root.dark .memo-footer { color: #aaa; }
   </style>
+
+  <script is:inline>
+    // -------------------------------
+    // 图片预览 Lightbox
+    // -------------------------------
+    document.addEventListener("DOMContentLoaded", () => {
+      const lightbox = document.getElementById("lightbox");
+      const lightboxImg = document.getElementById("lightbox-img");
+
+      if (!lightbox || !lightboxImg) return;
+
+      const imgs = document.querySelectorAll<HTMLImageElement>(".memo-img");
+
+      imgs.forEach((img) => {
+        img.addEventListener("click", () => {
+          const url = img.dataset.full;
+          if (url) {
+            lightboxImg.src = url;
+            lightbox.classList.add("show");
+          }
+        });
+      });
+
+      // 点击关闭
+      lightbox.addEventListener("click", () => {
+        lightboxImg.src = "";
+        lightbox.classList.remove("show");
+      });
+    });
+  </script>
 </Layout>
