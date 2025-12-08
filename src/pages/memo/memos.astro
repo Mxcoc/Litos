@@ -3,21 +3,28 @@ import Layout from '~/layouts/Layout.astro'
 
 const rssUrl = "https://memo.cattk.com/rss.json"
 
-let memos = []
+// 定义 BroadcastChannel RSS Item 类型
+type MemoItem = {
+  content_html: string
+  date_published: string
+  id?: string
+  title?: string
+}
+
+let memos: MemoItem[] = []
 try {
   const res = await fetch(rssUrl)
   const data = await res.json()
-  memos = data?.items || []
+  memos = (data?.items || []) as MemoItem[]
 } catch (e) {
   console.error("无法获取 Memos 数据:", e)
 }
 
-// 相对时间格式化函数（在客户端执行）
 const relativeTimeScript = `
 function timeAgo(dateString) {
   const date = new Date(dateString)
   const now = new Date()
-  const diff = (now - date) / 1000 // 秒
+  const diff = (now - date) / 1000
 
   if (diff < 60) return '刚刚'
   if (diff < 3600) return Math.floor(diff / 60) + ' 分钟前'
@@ -40,7 +47,7 @@ document.querySelectorAll('[data-time]').forEach(el => {
 
     {memos.length === 0 && <p>无法加载内容。</p>}
 
-    {memos.map((item) => (
+    {memos.map((item: MemoItem) => (
       <article class="memo-item">
         <p class="memo-content" set:html={item.content_html}></p>
 
@@ -53,7 +60,6 @@ document.querySelectorAll('[data-time]').forEach(el => {
     ))}
   </main>
 
-  <!-- 相对时间脚本 -->
   <script is:inline>{relativeTimeScript}</script>
 </Layout>
 
@@ -75,7 +81,6 @@ document.querySelectorAll('[data-time]').forEach(el => {
     border-bottom: 1px solid var(--divider-color, #e5e5e5);
   }
 
-  /* 内容排版更好看 */
   .memo-content {
     line-height: 1.75;
     font-size: 1rem;
@@ -84,13 +89,11 @@ document.querySelectorAll('[data-time]').forEach(el => {
     margin-bottom: 10px;
   }
 
-  /* 相对时间样式 */
   .memo-meta {
     font-size: 0.85rem;
     color: var(--text-secondary, #888);
   }
 
-  /* 暗黑模式适配（如果你网站有 dark class） */
   :root.dark .memo-item {
     border-color: #3a3a3a;
   }
