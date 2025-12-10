@@ -38,15 +38,11 @@ export const HEADER_LINKS: Link[] = [
     name: 'Memos',
     url: '/memo',
   },
-  {
-    name: 'HamRadio',
-    url: '/radio',
-  },
 ]
 
 export const FOOTER_LINKS: Link[] = [
   {
-    name: 'Readme',
+    name: 'Home',
     url: '/',
   },
   {
@@ -56,6 +52,14 @@ export const FOOTER_LINKS: Link[] = [
   {
     name: 'Tags',
     url: '/tags',
+  },
+  {
+    name: 'HamRadio',
+    url: '/radio',
+  },
+  {
+    name: 'About',
+    url: '/about',
   },
 ]
 
