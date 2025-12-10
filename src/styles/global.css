@@ -398,21 +398,3 @@ input[type='search']::-moz-search-cancel-button {
 .animate-slide-down {
   animation: slide-down 0.3s ease-out forwards;
 }
-
-/* ---- 移动端导航栏横向滑动 ---- */
-.nav-scroll {
-  overflow-x: auto;          /* 允许横向滚动 */
-  white-space: nowrap;       /* 不换行 */
-  -webkit-overflow-scrolling: touch; /* iOS 惯性滚动 */
-  scroll-behavior: smooth;
-}
-
-/* 隐藏滚动条（更美观，可选） */
-.nav-scroll::-webkit-scrollbar {
-  display: none;
-}
-
-/* 防止子项被压缩 */
-.nav-scroll > * {
-  flex-shrink: 0;
-}
