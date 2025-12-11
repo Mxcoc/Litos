@@ -14,13 +14,13 @@ import type {
 
 //--- Readme Page Config ---
 export const SITE: Site = {
-  title: 'Mxcoc Blog',
+  title: 'Cattk',
   description:
     'Litos is a modern blogging theme built on Astro.js, designed for developers. It supports multiple post layouts, photo displays, project displays, and more, providing an elegant user experience and powerful customization capabilities.',
   website: 'https://cattk.com/',
   lang: 'en',
   base: '/',
-  author: 'Mxcoc',
+  author: 'Cattk',
   ogImage: '/og-image.webp',
   transition: false,
 }
@@ -165,9 +165,9 @@ export const GITHUB_CONFIG: GithubConfig = {
 //--- Posts Page Config ---
 export const POSTS_CONFIG: PostConfig = {
   title: 'Posts',
-  description: 'Posts by Mxcoc',
+  description: 'Posts by Cattk',
   introduce: 'Here, I will share the usage instructions for this theme to help you quickly use it.',
-  author: 'Mxcoc',
+  author: 'Cattk',
   homePageConfig: {
     size: 5,
     type: 'compact',
@@ -201,8 +201,8 @@ export const COMMENT_CONFIG: CommentConfig = {
     clientID: import.meta.env.PUBLIC_GITHUB_CLIENT_ID,
     clientSecret: import.meta.env.PUBLIC_GITHUB_CLIENT_SECRET,
     repo: 'gitalk-comment',
-    owner: 'Mxcoc',
-    admin: ['Mxcoc'],
+    owner: 'Cattk',
+    admin: ['Cattk'],
     language: 'en-US',
     perPage: 5,
     pagerDirection: 'last',
@@ -235,7 +235,7 @@ export const ANALYTICS_CONFIG: AnalyticsConfig = {
     enabled: true,
   },
   umami: {
-    enabled: false,
+    enabled: falsce,
     websiteId: 'Your websiteId in umami',
     serverUrl: 'https://cloud.umami.is/script.js',
   },
