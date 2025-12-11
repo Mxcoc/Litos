@@ -232,10 +232,10 @@ export const PHOTOS_CONFIG: PhotosConfig = {
 
 export const ANALYTICS_CONFIG: AnalyticsConfig = {
   busuanzi: {
-    enabled: true,
+    enabled: false,
   },
   umami: {
-    enabled: falsce,
+    enabled: false,
     websiteId: 'Your websiteId in umami',
     serverUrl: 'https://cloud.umami.is/script.js',
   },
