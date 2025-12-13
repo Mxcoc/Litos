@@ -117,6 +117,18 @@ export const SKILLSSHOWCASE_CONFIG: SkillsShowcaseConfig = {
           name: 'Docker',
           icon: 'icon-[mdi--docker]',
         },
+        {
+          name: 'Radio',
+          icon: 'icon-[mdi--radio]',
+        },
+        {
+          name: 'Radio-AM',
+          icon: 'icon-[mdi--radio-am]',
+        },
+        {
+          name: 'Radio-FM',
+          icon: 'icon-[mdi--radio-fm]',
+        },
       ],
     },
     {
