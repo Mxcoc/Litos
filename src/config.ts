@@ -54,6 +54,10 @@ export const FOOTER_LINKS: Link[] = [
     url: '/tags',
   },
   {
+    name: 'Categories',
+    url: '/categories',
+  },
+  {
     name: 'HamRadio',
     url: '/radio',
   },
