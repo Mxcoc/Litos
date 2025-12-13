@@ -1,0 +1,132 @@
+---
+import { getCollection } from 'astro:content';
+
+const posts = await getCollection('posts');
+
+// 按日期倒序排序
+const sortedPosts = posts.sort(
+  (a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
+);
+
+// 按年份分组
+const postsByYear = sortedPosts.reduce((acc, post) => {
+  const year = new Date(post.data.date).getFullYear();
+  if (!acc[year]) acc[year] = [];
+  acc[year].push(post);
+  return acc;
+}, {} as Record<number, typeof posts>);
+---
+
+<html>
+<head>
+  <title>分类 / 时间线</title>
+  <style>
+    .timeline {
+      max-width: 800px;
+      margin: 2rem auto;
+      padding-left: 1rem;
+      border-left: 2px solid #ccc;
+    }
+    .year {
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+      font-size: 1.2rem;
+      color: #007acc;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+    .year span.count {
+      font-weight: normal;
+      font-size: 0.9rem;
+      color: #666;
+      margin-left: 0.5rem;
+    }
+    .arrow {
+      display: inline-block;
+      transition: transform 0.3s ease;
+      margin-right: 0.3rem;
+    }
+    .arrow.expanded {
+      transform: rotate(90deg);
+    }
+    .posts {
+      margin-left: 1.5rem;
+      overflow: hidden;
+      transition: max-height 0.3s ease, opacity 0.3s ease;
+      max-height: 0;
+      opacity: 0;
+    }
+    .posts.expanded {
+      max-height: 1000px;
+      opacity: 1;
+    }
+    .timeline-item {
+      margin-bottom: 0.5rem;
+      position: relative;
+    }
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -9px;
+      top: 4px;
+      width: 8px;
+      height: 8px;
+      background: #007acc;
+      border-radius: 50%;
+    }
+    .timeline-item time {
+      font-size: 0.85rem;
+      color: #666;
+      margin-right: 0.5rem;
+    }
+    .timeline-item a {
+      font-weight: normal;
+      color: #007acc;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <h1 style="text-align:center;">分类 / 时间线</h1>
+  <div class="timeline">
+    {Object.entries(postsByYear).map(([year, posts]) => (
+      <div>
+        <div class="year" onClick={`toggle('${year}')`}>
+          <span class="arrow" id={`arrow-${year}`}>▶</span>
+          {year} 年
+          <span class="count">{posts.length} 篇</span>
+        </div>
+        <div class="posts" id={year}>
+          {posts.map(post => (
+            <div class="timeline-item">
+              <time>{post.data.date}</time>
+              <a href={`/posts/${post.slug}`}>{post.data.title}</a>
+            </div>
+          ))}
+        </div>
+      </div>
+    ))}
+  </div>
+
+  <script>
+    function toggle(selectedYear) {
+      Object.keys({postsByYear}).forEach(year => {
+        const postsEl = document.getElementById(year);
+        const arrowEl = document.getElementById(`arrow-${year}`);
+        if (year === selectedYear) {
+          const isExpanded = postsEl.classList.contains('expanded');
+          postsEl.classList.toggle('expanded', !isExpanded);
+          arrowEl.classList.toggle('expanded', !isExpanded);
+        } else {
+          postsEl.classList.remove('expanded');
+          arrowEl.classList.remove('expanded');
+        }
+      });
+    }
+  </script>
+</body>
+</html>
