@@ -1,7 +1,14 @@
 ---
 import Layout from '~/layouts/Layout.astro';
-import { PostsList } from '~/lib/posts';
 
+// 模拟文章数据，直接放在这里，无需额外模块
+const PostsList = [
+  { title: '测试文章1', slug: 'test-1', date: '2025-01-01' },
+  { title: '测试文章2', slug: 'test-2', date: '2024-06-20' },
+  { title: '测试文章3', slug: 'test-3', date: '2025-06-15' },
+];
+
+// 按年份分类文章
 const postsByYear = PostsList.reduce((acc, post) => {
   const year = new Date(post.date).getFullYear();
   if (!acc[year]) acc[year] = [];
@@ -15,15 +22,15 @@ const postsByYear = PostsList.reduce((acc, post) => {
 
   <div class="categories">
     {Object.keys(postsByYear)
-      .sort((a, b) => Number(b) - Number(a))
+      .sort((a, b) => Number(b) - Number(a))  {/* 转成数字排序 */}
       .map(year => (
         <div class="year-block">
           <div class="year-header">
-            <button class="year-button" data-year={year} id={`year-${year}`}>
-              {year} <span class="arrow" id={`arrow-${year}`}>▶</span>
+            <button class="year-button" data-year={year}>
+              {year} <span class="arrow">▶</span>
             </button>
           </div>
-          <ul class="posts" id={`posts-${year}`}>
+          <ul class="posts">
             {postsByYear[year].map(post => (
               <li>
                 <a href={`/posts/${post.slug}`}>{post.title}</a>
@@ -43,27 +50,25 @@ const postsByYear = PostsList.reduce((acc, post) => {
   </style>
 
   <script type="text/javascript" is:inline>
-    function toggleYear(element) {
-      const year = element.dataset.year;
-      if (!year) return;
-
-      const allPosts = document.querySelectorAll('.posts');
-      const allArrows = document.querySelectorAll('.arrow');
-      allPosts.forEach(p => p.classList.remove('expanded'));
-      allArrows.forEach(a => a.classList.remove('expanded'));
-
-      const postsEl = document.getElementById(`posts-${year}`);
-      const arrowEl = document.getElementById(`arrow-${year}`);
-      if (postsEl && arrowEl) {
-        postsEl.classList.add('expanded');
-        arrowEl.classList.add('expanded');
-      }
-    }
-
     document.addEventListener('DOMContentLoaded', () => {
       const yearButtons = document.querySelectorAll('.year-button');
       yearButtons.forEach(btn => {
-        btn.addEventListener('click', () => toggleYear(btn));
+        btn.addEventListener('click', () => {
+          const year = btn.dataset.year;
+          if (!year) return;
+
+          // 重置所有
+          document.querySelectorAll('.posts').forEach(p => p.classList.remove('expanded'));
+          document.querySelectorAll('.arrow').forEach(a => a.classList.remove('expanded'));
+
+          // 当前年份展开
+          const postsEl = btn.closest('.year-block').querySelector('.posts');
+          const arrowEl = btn.querySelector('.arrow');
+          if (postsEl && arrowEl) {
+            postsEl.classList.add('expanded');
+            arrowEl.classList.add('expanded');
+          }
+        });
       });
     });
   </script>
