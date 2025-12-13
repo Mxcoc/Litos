@@ -100,7 +100,7 @@ export const SOCIAL_LINKS: SocialLink[] = [
  * get icon https://icon-sets.iconify.design/
  */
 export const SKILLSSHOWCASE_CONFIG: SkillsShowcaseConfig = {
-  SKILLS_ENABLED: false,
+  SKILLS_ENABLED: true,
   SKILLS_DATA: [
     {
       direction: 'left',
@@ -127,8 +127,8 @@ export const SKILLSSHOWCASE_CONFIG: SkillsShowcaseConfig = {
           icon: 'icon-[lineicons--astro]',
         },
         {
-          name: 'Node.js',
-          icon: 'icon-[mdi--nodejs]',
+          name: 'Apple',
+          icon: 'icon-[mdi--apple]',
         },
         {
           name: 'Next.js',
