@@ -1,6 +1,6 @@
 ---
 import Layout from '~/layouts/Layout.astro';
-import { PostsList } from '~/lib/posts'; // 假设你有这个数据源
+import { PostsList } from '~/lib/posts';
 
 const postsByYear = PostsList.reduce((acc, post) => {
   const year = new Date(post.date).getFullYear();
@@ -15,9 +15,9 @@ const postsByYear = PostsList.reduce((acc, post) => {
 
   <div class="categories">
     {Object.keys(postsByYear)
-      .sort((a, b) => b - a)
+      .sort((a, b) => Number(b) - Number(a))
       .map(year => (
-        <div key={year} class="year-block">
+        <div class="year-block">
           <div class="year-header">
             <button class="year-button" data-year={year} id={`year-${year}`}>
               {year} <span class="arrow" id={`arrow-${year}`}>▶</span>
@@ -25,7 +25,7 @@ const postsByYear = PostsList.reduce((acc, post) => {
           </div>
           <ul class="posts" id={`posts-${year}`}>
             {postsByYear[year].map(post => (
-              <li key={post.slug}>
+              <li>
                 <a href={`/posts/${post.slug}`}>{post.title}</a>
               </li>
             ))}
@@ -42,18 +42,16 @@ const postsByYear = PostsList.reduce((acc, post) => {
     .year-button { background: none; border: none; cursor: pointer; font-size: 1rem; }
   </style>
 
-  <script type="text/javascript">
+  <script type="text/javascript" is:inline>
     function toggleYear(element) {
       const year = element.dataset.year;
       if (!year) return;
 
-      // 所有文章列表和箭头先重置
       const allPosts = document.querySelectorAll('.posts');
       const allArrows = document.querySelectorAll('.arrow');
       allPosts.forEach(p => p.classList.remove('expanded'));
       allArrows.forEach(a => a.classList.remove('expanded'));
 
-      // 当前年份展开
       const postsEl = document.getElementById(`posts-${year}`);
       const arrowEl = document.getElementById(`arrow-${year}`);
       if (postsEl && arrowEl) {
