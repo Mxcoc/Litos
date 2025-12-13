@@ -114,8 +114,8 @@ export const SKILLSSHOWCASE_CONFIG: SkillsShowcaseConfig = {
           icon: 'icon-[mdi--language-css3]',
         },
         {
-          name: 'HTML',
-          icon: 'icon-[mdi--language-html5]',
+          name: 'Docker',
+          icon: 'icon-[mdi--docker]',
         },
       ],
     },
@@ -131,6 +131,10 @@ export const SKILLSSHOWCASE_CONFIG: SkillsShowcaseConfig = {
           icon: 'icon-[mdi--apple]',
         },
         {
+          name: 'Cloudflare',
+          icon: 'icon-[cib--cloudflare]',
+        },
+        {
           name: 'Next.js',
           icon: 'icon-[devicon--nextjs]',
         },
@@ -142,6 +146,10 @@ export const SKILLSSHOWCASE_CONFIG: SkillsShowcaseConfig = {
         {
           name: 'Ubuntu',
           icon: 'icon-[mdi--ubuntu]',
+        },
+        {
+          name: 'Linux',
+          icon: 'icon-[mdi--linux]',
         },
         {
           name: 'Vercel',
