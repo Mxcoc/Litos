@@ -1,73 +1,59 @@
 ---
-import { getCollection } from 'astro:content';
+import Layout from '~/layouts/Layout.astro';
+import { PostsList } from '~/lib/posts'; // 假设你有这个数据源
 
-const posts = await getCollection('posts');
-
-const sortedPosts = posts.sort(
-  (a, b) => new Date(b.data.pubDate).getTime() - new Date(a.data.pubDate).getTime()
-);
-
-const postsByYear = sortedPosts.reduce((acc, post) => {
-  const year = new Date(post.data.pubDate).getFullYear();
+const postsByYear = PostsList.reduce((acc, post) => {
+  const year = new Date(post.date).getFullYear();
   if (!acc[year]) acc[year] = [];
   acc[year].push(post);
   return acc;
-}, {} as Record<number, typeof posts>);
-
-// 把年份列表渲染到模板，用于客户端 JS
-const years = Object.keys(postsByYear);
+}, {});
 ---
 
-<html>
-<head>
-  <title>分类 / 时间线</title>
-  <style>
-    .timeline { max-width:800px; margin:2rem auto; padding-left:1rem; border-left:2px solid #ccc; }
-    .year { cursor:pointer; font-weight:bold; margin-top:1rem; margin-bottom:0.5rem; font-size:1.2rem; color:#007acc; display:flex; justify-content:space-between; align-items:center; user-select:none; }
-    .year span.count { font-weight:normal; font-size:0.9rem; color:#666; margin-left:0.5rem; }
-    .arrow { display:inline-block; transition:transform 0.3s ease; margin-right:0.3rem; }
-    .arrow.expanded { transform:rotate(90deg); }
-    .posts { margin-left:1.5rem; overflow:hidden; transition:max-height 0.3s ease, opacity 0.3s ease; max-height:0; opacity:0; }
-    .posts.expanded { max-height:1000px; opacity:1; }
-    .timeline-item { margin-bottom:0.5rem; position:relative; }
-    .timeline-item::before { content:''; position:absolute; left:-9px; top:4px; width:8px; height:8px; background:#007acc; border-radius:50%; }
-    .timeline-item time { font-size:0.85rem; color:#666; margin-right:0.5rem; }
-    .timeline-item a { font-weight:normal; color:#007acc; text-decoration:none; }
-  </style>
-</head>
-<body>
-  <h1 style="text-align:center;">分类 / 时间线</h1>
-  <div class="timeline">
-    {years.map((year) => (
-      <div>
-        <div class="year" data-year={year} onclick="toggleYear(this)">
-          <span class="arrow" id={`arrow-${year}`}>▶</span>
-          {year} 年
-          <span class="count">{postsByYear[Number(year)].length} 篇</span>
+<Layout title="文章分类" description="按年份分类的文章列表">
+  <h1>按年份分类</h1>
+
+  <div class="categories">
+    {Object.keys(postsByYear)
+      .sort((a, b) => b - a)
+      .map(year => (
+        <div key={year} class="year-block">
+          <div class="year-header">
+            <button class="year-button" data-year={year} id={`year-${year}`}>
+              {year} <span class="arrow" id={`arrow-${year}`}>▶</span>
+            </button>
+          </div>
+          <ul class="posts" id={`posts-${year}`}>
+            {postsByYear[year].map(post => (
+              <li key={post.slug}>
+                <a href={`/posts/${post.slug}`}>{post.title}</a>
+              </li>
+            ))}
+          </ul>
         </div>
-        <div class="posts" id={`posts-${year}`}>
-          {postsByYear[Number(year)].map(post => (
-            <div class="timeline-item">
-              <time>{new Date(post.data.pubDate).toLocaleDateString()}</time>
-              <a href={`/posts/${post.id}`}>{post.data.title}</a>
-            </div>
-          ))}
-        </div>
-      </div>
-    ))}
+      ))}
   </div>
 
+  <style>
+    .posts { display: none; margin-left: 1.5rem; }
+    .posts.expanded { display: block; }
+    .arrow { display: inline-block; transition: transform 0.2s ease; }
+    .arrow.expanded { transform: rotate(90deg); }
+    .year-button { background: none; border: none; cursor: pointer; font-size: 1rem; }
+  </style>
+
   <script type="text/javascript">
-    function toggleYear(element: HTMLElement) {
+    function toggleYear(element) {
       const year = element.dataset.year;
       if (!year) return;
 
+      // 所有文章列表和箭头先重置
       const allPosts = document.querySelectorAll('.posts');
       const allArrows = document.querySelectorAll('.arrow');
-
       allPosts.forEach(p => p.classList.remove('expanded'));
       allArrows.forEach(a => a.classList.remove('expanded'));
 
+      // 当前年份展开
       const postsEl = document.getElementById(`posts-${year}`);
       const arrowEl = document.getElementById(`arrow-${year}`);
       if (postsEl && arrowEl) {
@@ -75,6 +61,12 @@ const years = Object.keys(postsByYear);
         arrowEl.classList.add('expanded');
       }
     }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const yearButtons = document.querySelectorAll('.year-button');
+      yearButtons.forEach(btn => {
+        btn.addEventListener('click', () => toggleYear(btn));
+      });
+    });
   </script>
-</body>
-</html>
+</Layout>
