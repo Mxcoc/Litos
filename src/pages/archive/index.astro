@@ -3,22 +3,23 @@ import Layout from '../../layouts/Layout.astro';
 import { getCollection } from 'astro:content';
 import type { CollectionEntry } from 'astro:content';
 
-// 定义文章类型
+// 定义文章类型，确保类型安全
 type Post = CollectionEntry<'posts'>;
 
 // 1. 获取文章集合
 const allPosts = await getCollection('posts');
 
-// 2. 过滤并排序
-// 移除了 post.data.date 的检查，因为 TypeScript 确认它不存在
+// 2. 过滤掉草稿并按时间排序 (使用 pubDate)
 const sortedPosts = allPosts
   .filter((post) => !post.data.draft)
   .sort((a, b) => {
+    // 确保使用正确且存在的 pubDate 字段进行比较
     return new Date(b.data.pubDate).valueOf() - new Date(a.data.pubDate).valueOf();
   });
 
 // 3. 统计标签和年份
 const tagCounts: Record<string, number> = {};
+// 键为数字年份，值为文章数组
 const postsByYear: Record<number, Post[]> = {};
 
 sortedPosts.forEach((post) => {
@@ -28,7 +29,7 @@ sortedPosts.forEach((post) => {
     tagCounts[tag] = (tagCounts[tag] || 0) + 1;
   });
 
-  // 直接使用 pubDate，不再检查 date
+  // 获取年份，直接使用 pubDate
   const year = new Date(post.data.pubDate).getFullYear();
   
   if (!postsByYear[year]) {
@@ -38,6 +39,7 @@ sortedPosts.forEach((post) => {
 });
 
 const sortedTags = Object.keys(tagCounts).sort();
+// 年份倒序
 const years = Object.keys(postsByYear).map(Number).sort((a, b) => b - a);
 ---
 
@@ -60,6 +62,11 @@ const years = Object.keys(postsByYear).map(Number).sort((a, b) => b - a);
     </section>
 
     <hr class="divider" />
+    <div class="toggle-buttons">
+      <button id="expand-all">全部展开</button>
+      <button id="collapse-all">全部折叠</button>
+    </div>
+    <hr class="divider" />
 
     <section class="timeline">
       {years.map((year, index) => (
@@ -74,7 +81,7 @@ const years = Object.keys(postsByYear).map(Number).sort((a, b) => b - a);
             {postsByYear[year].map((post) => (
               <li class="post-item">
                 <span class="post-date">
-                  {new Date(post.data.pubDate).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })}
+                  {new Date(post.data.pubDate).toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })}
                 </span>
                 <a href={`/posts/${post.id}/`} class="post-link">
                   {post.data.title}
@@ -88,7 +95,21 @@ const years = Object.keys(postsByYear).map(Number).sort((a, b) => b - a);
   </main>
 </Layout>
 
+<script>
+  // 使用 client:load 指令时，此脚本会在浏览器端执行
+  const details = document.querySelectorAll('.year-group');
+  
+  document.getElementById('expand-all')?.addEventListener('click', () => {
+    details.forEach(d => d.setAttribute('open', ''));
+  });
+
+  document.getElementById('collapse-all')?.addEventListener('click', () => {
+    details.forEach(d => d.removeAttribute('open'));
+  });
+</script>
+
 <style>
+  /* 基础布局 */
   .archive-container {
     max-width: 800px;
     margin: 0 auto;
@@ -151,6 +172,25 @@ const years = Object.keys(postsByYear).map(Number).sort((a, b) => b - a);
     font-size: 0.75rem;
     margin-left: 0.5rem;
     color: #6b7280;
+  }
+
+  /* Toggle Buttons Styles */
+  .toggle-buttons {
+    text-align: right;
+    margin-bottom: 1.5rem;
+  }
+  .toggle-buttons button {
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    padding: 5px 10px;
+    margin-left: 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background-color 0.2s;
+  }
+  .toggle-buttons button:hover {
+    background-color: #e5e7eb;
   }
 
   /* Timeline Styles */
@@ -219,7 +259,8 @@ const years = Object.keys(postsByYear).map(Number).sort((a, b) => b - a);
     font-family: monospace;
     color: #6b7280;
     margin-right: 1rem;
-    min-width: 60px;
+    /* 调整宽度以适应“十二月 13”这样的格式 */
+    min-width: 80px; 
   }
 
   .post-link {
@@ -233,7 +274,7 @@ const years = Object.keys(postsByYear).map(Number).sort((a, b) => b - a);
     text-decoration: underline;
   }
 
-  /* Dark Mode */
+  /* Dark Mode 适配 */
   :global(.dark) .tag-chip {
     background-color: #374151;
     color: #e5e7eb;
@@ -250,5 +291,13 @@ const years = Object.keys(postsByYear).map(Number).sort((a, b) => b - a);
   }
   :global(.dark) .post-link:hover {
     color: #60a5fa;
+  }
+  :global(.dark) .toggle-buttons button {
+    background: #374151;
+    border-color: #4b5563;
+    color: #e5e7eb;
+  }
+  :global(.dark) .toggle-buttons button:hover {
+    background-color: #4b5563;
   }
 </style>
