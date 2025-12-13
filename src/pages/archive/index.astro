@@ -1,35 +1,51 @@
 ---
-import Layout from '../layouts/Layout.astro';
+// 1. 修正路径：向上两级找到 layouts (根据报错，你的布局文件可能叫 Layout.astro 或 BaseLayout.astro)
+// 如果报错找不到 Layout.astro，请尝试改为 import Layout from '../../layouts/BaseLayout.astro';
+import Layout from '../../layouts/Layout.astro'; 
 import { getCollection } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
 
-// 1. 获取所有博客文章并按时间倒序排列
-const allPosts = await getCollection('blog');
-const sortedPosts = allPosts.sort((a, b) => new Date(b.data.pubDate).valueOf() - new Date(a.data.pubDate).valueOf());
+// 定义文章类型，解决 TypeScript 'any' 报错
+type Post = CollectionEntry<'posts'>;
 
-// 2. 处理分类 (Tag) 数据
-const tagCounts = {};
-sortedPosts.forEach(post => {
-  // 假设你的 frontmatter 使用 'tags'，如果是 'categories' 请自行替换
-  const tags = post.data.tags || []; 
-  tags.forEach(tag => {
+// 2. 修正集合名称：Litos 使用 'posts' 而不是 'blog'
+const allPosts = await getCollection('posts');
+
+// 过滤掉草稿 (如果有 draft 字段) 并按时间排序
+const sortedPosts = allPosts
+  .filter((post) => !post.data.draft)
+  .sort((a, b) => {
+    // 确保日期存在，部分主题可能使用 date 而不是 pubDate，这里做了兼容
+    const dateA = new Date(a.data.pubDate || a.data.date || 0).valueOf();
+    const dateB = new Date(b.data.pubDate || b.data.date || 0).valueOf();
+    return dateB - dateA;
+  });
+
+// 3. 定义对象类型，解决 'Element implicitly has an any type' 报错
+const tagCounts: Record<string, number> = {};
+const postsByYear: Record<number, Post[]> = {};
+
+sortedPosts.forEach((post) => {
+  // 修正标签获取：有些主题使用 tags，有些是 category，这里做安全处理
+  const tags: string[] = post.data.tags || []; 
+  
+  tags.forEach((tag) => {
     tagCounts[tag] = (tagCounts[tag] || 0) + 1;
   });
-});
-// 将分类按名称排序 (可选：也可以按数量排序)
-const sortedTags = Object.keys(tagCounts).sort();
 
-// 3. 按年份分组文章
-const postsByYear = {};
-sortedPosts.forEach((post) => {
-  const year = new Date(post.data.pubDate).getFullYear();
+  // 获取年份
+  const postDate = new Date(post.data.pubDate || post.data.date || new Date());
+  const year = postDate.getFullYear();
+  
   if (!postsByYear[year]) {
     postsByYear[year] = [];
   }
   postsByYear[year].push(post);
 });
 
-// 获取所有年份并倒序排列 (2024, 2023, ...)
-const years = Object.keys(postsByYear).sort((a, b) => b - a);
+const sortedTags = Object.keys(tagCounts).sort();
+// 年份倒序
+const years = Object.keys(postsByYear).map(Number).sort((a, b) => b - a);
 ---
 
 <Layout title="归档 | Archive">
@@ -65,9 +81,9 @@ const years = Object.keys(postsByYear).sort((a, b) => b - a);
             {postsByYear[year].map((post) => (
               <li class="post-item">
                 <span class="post-date">
-                  {new Date(post.data.pubDate).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })}
+                  {new Date(post.data.pubDate || post.data.date || new Date()).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })}
                 </span>
-                <a href={`/blog/${post.slug}/`} class="post-link">
+                <a href={`/posts/${post.slug}/`} class="post-link">
                   {post.data.title}
                 </a>
               </li>
@@ -154,7 +170,7 @@ const years = Object.keys(postsByYear).sort((a, b) => b - a);
 
   .year-summary {
     cursor: pointer;
-    list-style: none; /* 移除默认箭头 */
+    list-style: none;
     display: flex;
     align-items: center;
     font-size: 1.5rem;
@@ -164,7 +180,6 @@ const years = Object.keys(postsByYear).sort((a, b) => b - a);
     position: relative;
   }
   
-  /* 自定义折叠箭头逻辑 */
   .year-summary::-webkit-details-marker {
     display: none;
   }
@@ -227,7 +242,7 @@ const years = Object.keys(postsByYear).sort((a, b) => b - a);
     text-decoration: underline;
   }
 
-  /* 适配暗色模式 (如果 Litos 支持暗色模式，通常是 html.dark 或 similar) */
+  /* 适配暗色模式 */
   :global(.dark) .tag-chip {
     background-color: #374151;
     color: #e5e7eb;
